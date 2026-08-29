@@ -5,5 +5,5 @@
 // schema.sql). NEVER put the Supabase "service_role" key here or in
 // any frontend file — that key bypasses RLS entirely.
 // ============================================================
-export const SUPABASE_URL = "https://egmedvnahdprvnozoblp.supabase.co/rest/v1/";
+export const SUPABASE_URL = "https://egmedvnahdprvnozoblp.supabase.co";
 export const SUPABASE_ANON_KEY = "sb_publishable_OBWp3EqN1c9cga57bpBlhg_ScVL3BHP";
