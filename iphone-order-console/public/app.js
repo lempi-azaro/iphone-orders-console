@@ -1,11 +1,12 @@
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
-import { IPHONE_MODELS, findModel, storageLabel } from "./iphone-data.js";
+import { IPHONE_MODELS, findModel, storageLabel, estimatePriceAndBattery } from "./iphone-data.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: { persistSession: true, autoRefreshToken: true },
 });
 
+// ---- Session guard: no valid session -> back to login ----
 const { data: { session } } = await supabase.auth.getSession();
 if (!session) {
   window.location.href = "index.html";
@@ -21,9 +22,10 @@ document.getElementById("logout-btn").addEventListener("click", async () => {
   window.location.href = "index.html";
 });
 
+// ---- State ----
 let orders = [];
 let sortKey = null;
-let sortDir = 1;
+let sortDir = 1; // 1 = ascending, -1 = descending
 let currentPage = 1;
 const PAGE_SIZE = 20;
 const tbody = document.getElementById("orders-tbody");
@@ -60,6 +62,8 @@ function showToast(msg, isError = false) {
   setTimeout(() => (toast.hidden = true), 2500);
 }
 
+// Escape any user-entered text before it goes into innerHTML — otherwise
+// a name/address field like `<img onerror=...>` is a stored XSS attack.
 function esc(str) {
   const d = document.createElement("div");
   d.textContent = str ?? "";
@@ -75,7 +79,7 @@ async function loadOrders() {
 
   if (error) {
     tbody.innerHTML = `<tr><td colspan="12" class="muted center">Could not load orders.</td></tr>`;
-    console.error(error.message);
+    console.error(error.message); // never log tokens/passwords — only safe error text
     return;
   }
   orders = data;
@@ -156,7 +160,7 @@ function render() {
       <td>${money(o.price)}</td>
       <td>
         <select class="status-select status-${o.status}" data-field="status">
-          ${["pending", "processing", "shipped", "delivered", "cancelled"]
+          ${["pending", "processing", "shipped", "delivered", "cancelled", "refunded"]
             .map((s) => `<option value="${s}" ${s === o.status ? "selected" : ""}>${s}</option>`)
             .join("")}
         </select>
@@ -171,6 +175,7 @@ function render() {
     )
     .join("");
 
+  // Inline status change -> save immediately, refetch to confirm persistence
   tbody.querySelectorAll(".status-select").forEach((sel) => {
     sel.addEventListener("change", async (e) => {
       const id = e.target.closest("tr").dataset.id;
@@ -183,7 +188,7 @@ function render() {
         return;
       }
       showToast("Status updated.");
-      await loadOrders();
+      await loadOrders(); // re-pull from DB so a page refresh always matches this view
     });
   });
 
@@ -226,6 +231,7 @@ document.querySelectorAll("th.sortable").forEach((th) => {
 pagePrevBtn.addEventListener("click", () => { currentPage -= 1; render(); });
 pageNextBtn.addEventListener("click", () => { currentPage += 1; render(); });
 
+// ---- Add / Edit dialog ----
 const dialog = document.getElementById("order-dialog");
 const dialogTitle = document.getElementById("dialog-title");
 const orderForm = document.getElementById("order-form");
@@ -244,6 +250,7 @@ const yearInput = document.getElementById("f-model_year");
 const conditionSelect = document.getElementById("f-condition");
 const batteryInput = document.getElementById("f-battery_health");
 
+// Populate the model dropdown once, grouped newest-first.
 modelSelect.innerHTML = [...IPHONE_MODELS]
   .reverse()
   .map((m) => `<option value="${m.name}">${m.name} (${m.year})</option>`)
@@ -282,7 +289,7 @@ function openDialog(order = null) {
   document.getElementById("f-id").value = order?.id ?? "";
 
   fields.forEach((f) => {
-    if (["iphone_model", "storage_gb", "color", "model_year"].includes(f)) return;
+    if (["iphone_model", "storage_gb", "color", "model_year"].includes(f)) return; // handled below
     document.getElementById(`f-${f}`).value = order ? order[f] ?? "" : "";
   });
 
@@ -292,11 +299,44 @@ function openDialog(order = null) {
   const isNew = conditionSelect.value === "new";
   batteryInput.disabled = isNew;
 
+  const resultEl = document.getElementById("estimate-result");
+  resultEl.classList.remove("visible");
+  resultEl.textContent = "";
+  document.getElementById("est-years").value = "";
+
   dialog.showModal();
 }
 
 document.getElementById("add-order-btn").addEventListener("click", () => openDialog());
 document.getElementById("cancel-btn").addEventListener("click", () => dialog.close());
+
+document.getElementById("run-estimate-btn").addEventListener("click", () => {
+  const model = findModel(modelSelect.value);
+  if (!model) return;
+
+  const yearsRaw = document.getElementById("est-years").value;
+  const result = estimatePriceAndBattery(model, storageSelect.value, {
+    screenCondition: document.getElementById("est-screen").value,
+    bodyCondition: document.getElementById("est-body").value,
+    partsReplaced: document.getElementById("est-parts").value,
+    faceIdWorks: document.getElementById("est-faceid").checked,
+    cameraWorks: document.getElementById("est-camera").checked,
+    chargingPortWorks: document.getElementById("est-charging").checked,
+    waterDamage: document.getElementById("est-water").checked,
+    yearsUsed: yearsRaw === "" ? null : Number(yearsRaw),
+  });
+
+  document.getElementById("f-price").value = result.estimatedPrice;
+  if (conditionSelect.value !== "new") {
+    batteryInput.value = result.estimatedBattery;
+  }
+
+  const resultEl = document.getElementById("estimate-result");
+  resultEl.classList.add("visible");
+  resultEl.textContent =
+    `Suggested: RM ${result.estimatedPrice.toLocaleString()} · ~${result.estimatedBattery}% battery ` +
+    `(condition score ${result.conditionScore}/100, ~${result.ageYears} yr old). Fields have been filled in — adjust if needed.`;
+});
 
 orderForm.addEventListener("submit", async (e) => {
   e.preventDefault();
@@ -312,6 +352,8 @@ orderForm.addEventListener("submit", async (e) => {
     payload[f] = v;
   });
 
+  // Basic client-side sanity check (defense in depth — the real
+  // constraints live in the database via CHECK constraints).
   if (payload.condition === "new") payload.battery_health = null;
 
   const query = id
@@ -329,4 +371,5 @@ orderForm.addEventListener("submit", async (e) => {
   await loadOrders();
 });
 
+// Initial load
 await loadOrders();
