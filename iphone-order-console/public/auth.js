@@ -14,12 +14,8 @@ const errorMsg = document.getElementById("error-msg");
 const loginBtn = document.getElementById("login-btn");
 const magicBtn = document.getElementById("magic-link-btn");
 
-let turnstileToken = null;
-window.onTurnstileOk = (token) => {
-  turnstileToken = token;
-  loginBtn.disabled = false;
-};
-
+// TEMPORARY: Turnstile bot-check disabled while domain/site-key is being
+// set up. Re-enable before sending this link to anyone — see README.
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
   errorMsg.textContent = "";
@@ -30,12 +26,9 @@ form.addEventListener("submit", async (e) => {
   loginBtn.disabled = true;
   loginBtn.textContent = "Signing in…";
 
-  // Supabase verifies the Turnstile token server-side via a configured
-  // CAPTCHA provider on the Auth settings — the token is just forwarded here.
   const { error } = await supabase.auth.signInWithPassword({
     email,
     password,
-    options: { captchaToken: turnstileToken },
   });
 
   if (error) {
