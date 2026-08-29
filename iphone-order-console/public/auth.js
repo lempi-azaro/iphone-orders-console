@@ -24,11 +24,6 @@ form.addEventListener("submit", async (e) => {
   e.preventDefault();
   errorMsg.textContent = "";
 
-  if (!turnstileToken) {
-    errorMsg.textContent = "Please complete the human verification check.";
-    return;
-  }
-
   const email = document.getElementById("email").value.trim();
   const password = document.getElementById("password").value;
 
