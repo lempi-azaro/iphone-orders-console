@@ -20,6 +20,14 @@
   </header>
 
   <main class="dashboard">
+    <div class="stats-row" id="stats-row">
+      <div class="stat-card"><span class="stat-num" id="stat-total">—</span><span class="stat-label">Total orders</span></div>
+      <div class="stat-card"><span class="stat-num" id="stat-revenue">—</span><span class="stat-label">Total value (RM)</span></div>
+      <div class="stat-card stat-pending"><span class="stat-num" id="stat-pending">—</span><span class="stat-label">Pending</span></div>
+      <div class="stat-card stat-transit"><span class="stat-num" id="stat-transit">—</span><span class="stat-label">Processing + shipped</span></div>
+      <div class="stat-card stat-done"><span class="stat-num" id="stat-delivered">—</span><span class="stat-label">Delivered</span></div>
+    </div>
+
     <div class="dashboard-head">
       <div>
         <h1>iPhone orders</h1>
@@ -46,16 +54,16 @@
       <table id="orders-table">
         <thead>
           <tr>
-            <th>Order #</th>
-            <th>Customer</th>
+            <th class="sortable" data-sort="order_number">Order # <span class="sort-arrow"></span></th>
+            <th class="sortable" data-sort="customer_name">Customer <span class="sort-arrow"></span></th>
             <th>Shipping address</th>
-            <th>Model</th>
-            <th>Year</th>
+            <th class="sortable" data-sort="iphone_model">Model <span class="sort-arrow"></span></th>
+            <th class="sortable" data-sort="model_year">Year <span class="sort-arrow"></span></th>
             <th>Storage</th>
             <th>Color</th>
             <th>Condition</th>
-            <th>Battery %</th>
-            <th>Price (RM)</th>
+            <th class="sortable" data-sort="battery_health">Battery % <span class="sort-arrow"></span></th>
+            <th class="sortable" data-sort="price">Price (RM) <span class="sort-arrow"></span></th>
             <th>Status</th>
             <th></th>
           </tr>
@@ -78,10 +86,16 @@
         <label>Customer name <input id="f-customer_name" required /></label>
         <label>Customer email <input id="f-customer_email" type="email" required /></label>
         <label class="span-2">Shipping address <input id="f-shipping_address" required /></label>
-        <label>Model <input id="f-iphone_model" required /></label>
-        <label>Year <input id="f-model_year" type="number" min="2007" max="2030" required /></label>
-        <label>Storage (GB) <input id="f-storage_gb" type="number" min="16" required /></label>
-        <label>Color <input id="f-color" required /></label>
+        <label>Model
+          <select id="f-iphone_model" required></select>
+        </label>
+        <label>Year <input id="f-model_year" type="number" readonly tabindex="-1" /></label>
+        <label>Storage
+          <select id="f-storage_gb" required></select>
+        </label>
+        <label>Color
+          <select id="f-color" required></select>
+        </label>
         <label>Condition
           <select id="f-condition" required>
             <option value="new">New</option>
