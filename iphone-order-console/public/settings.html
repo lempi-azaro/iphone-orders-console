@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; connect-src 'self' https://*.supabase.co; img-src 'self' data:;">
+<title>Settings · Order Console</title>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <span class="brand-mark">◆</span>
+        <span class="brand-name">Order Console</span>
+      </div>
+      <nav class="topnav">
+        <a href="home.html">Home</a>
+        <a href="dashboard.html">Orders</a>
+        <a href="settings.html" class="active">Settings</a>
+      </nav>
+    </div>
+    <div class="topbar-right">
+      <span id="user-email" class="muted"></span>
+      <button id="logout-btn" class="ghost-btn">Sign out</button>
+    </div>
+  </header>
+
+  <main class="dashboard">
+    <div class="dashboard-head"><div><h1>Settings</h1></div></div>
+
+    <div class="settings-card">
+      <h2>Account</h2>
+      <p class="muted">Signed in as <strong id="account-email">—</strong></p>
+      <label>New password
+        <input id="new-password" type="password" minlength="8" placeholder="Leave blank to keep current password" />
+      </label>
+      <div class="save-row">
+        <button id="save-password-btn" class="primary-btn">Update password</button>
+        <span id="password-msg" class="muted"></span>
+      </div>
+    </div>
+
+    <div class="settings-card">
+      <h2>Store</h2>
+      <p class="muted">Shown at the top of the Home page.</p>
+      <label>Store name
+        <input id="store-name" type="text" />
+      </label>
+      <label>Low-stock threshold
+        <input id="low-stock-threshold" type="number" min="1" />
+      </label>
+      <div class="save-row">
+        <button id="save-settings-btn" class="primary-btn">Save settings</button>
+        <span id="settings-msg" class="muted"></span>
+      </div>
+    </div>
+  </main>
+
+  <script type="module" src="config.js"></script>
+  <script type="module" src="settings.js"></script>
+</body>
+</html>
