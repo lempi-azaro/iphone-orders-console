@@ -52,6 +52,20 @@
 
     <div class="table-wrap">
       <table id="orders-table">
+        <colgroup>
+          <col style="width:85px">
+          <col style="width:150px">
+          <col style="width:210px">
+          <col style="width:135px">
+          <col style="width:55px">
+          <col style="width:70px">
+          <col style="width:95px">
+          <col style="width:90px">
+          <col style="width:75px">
+          <col style="width:90px">
+          <col style="width:125px">
+          <col style="width:130px">
+        </colgroup>
         <thead>
           <tr>
             <th class="sortable" data-sort="order_number">Order # <span class="sort-arrow"></span></th>
@@ -62,16 +76,25 @@
             <th>Storage</th>
             <th>Color</th>
             <th>Condition</th>
-            <th class="sortable" data-sort="battery_health">Battery % <span class="sort-arrow"></span></th>
+            <th class="sortable" data-sort="battery_health">Battery <span class="sort-arrow"></span></th>
             <th class="sortable" data-sort="price">Price (RM) <span class="sort-arrow"></span></th>
             <th>Status</th>
-            <th></th>
+            <th>Actions</th>
           </tr>
         </thead>
         <tbody id="orders-tbody">
           <tr><td colspan="12" class="muted center">Loading orders…</td></tr>
         </tbody>
       </table>
+    </div>
+
+    <div class="pagination-bar">
+      <span id="pagination-summary" class="muted"></span>
+      <div class="pagination-controls">
+        <button id="page-prev" class="ghost-btn">← Prev</button>
+        <span id="page-indicator" class="muted"></span>
+        <button id="page-next" class="ghost-btn">Next →</button>
+      </div>
     </div>
   </main>
 
