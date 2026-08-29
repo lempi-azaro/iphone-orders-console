@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; connect-src 'self' https://*.supabase.co; frame-src https://challenges.cloudflare.com; img-src 'self' data:;">
+<title>Sign in · Order Console</title>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body class="auth-body">
+  <main class="auth-card" role="main">
+    <div class="brand">
+      <span class="brand-mark">◆</span>
+      <span class="brand-name">Order Console</span>
+    </div>
+    <h1>Sign in</h1>
+    <p class="muted">Staff access only. All activity is logged.</p>
+
+    <form id="login-form" novalidate autocomplete="on">
+      <label for="email">Email</label>
+      <input id="email" name="email" type="email" autocomplete="username" required />
+
+      <label for="password">Password</label>
+      <input id="password" name="password" type="password" autocomplete="current-password" required minlength="8" />
+
+      <!-- Bot protection widget renders here -->
+      <div class="cf-turnstile" data-sitekey="0x4AAAAAAEgpy2XJnTE_7wp4" data-callback="onTurnstileOk" style="margin: 14px 0;"></div>
+
+      <button type="submit" id="login-btn" disabled>Sign in</button>
+      <p id="error-msg" class="error" role="alert" aria-live="polite"></p>
+    </form>
+
+    <button id="magic-link-btn" class="ghost-btn">Email me a sign-in link instead</button>
+    <p class="fineprint">Sessions expire automatically. Never share your password or a sign-in link.</p>
+  </main>
+
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+  <script type="module" src="config.js"></script>
+  <script type="module" src="auth.js"></script>
+</body>
+</html>

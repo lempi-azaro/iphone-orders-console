@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; connect-src 'self' https://*.supabase.co; img-src 'self' data:;">
+<title>Order Console</title>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark">◆</span>
+      <span class="brand-name">Order Console</span>
+    </div>
+    <div class="topbar-right">
+      <span id="user-email" class="muted"></span>
+      <button id="logout-btn" class="ghost-btn">Sign out</button>
+    </div>
+  </header>
+
+  <main class="dashboard">
+    <div class="dashboard-head">
+      <div>
+        <h1>iPhone orders</h1>
+        <p class="muted"><span id="order-count">—</span> orders</p>
+      </div>
+      <div class="dashboard-actions">
+        <input id="search-input" type="search" placeholder="Search name, order #, model…" />
+        <select id="status-filter">
+          <option value="">All statuses</option>
+          <option value="pending">Pending</option>
+          <option value="processing">Processing</option>
+          <option value="shipped">Shipped</option>
+          <option value="delivered">Delivered</option>
+          <option value="cancelled">Cancelled</option>
+        </select>
+        <button id="refresh-btn" class="ghost-btn">Refresh</button>
+        <button id="add-order-btn" class="primary-btn">+ Add order</button>
+      </div>
+    </div>
+
+    <p id="save-toast" class="toast" hidden></p>
+
+    <div class="table-wrap">
+      <table id="orders-table">
+        <thead>
+          <tr>
+            <th>Order #</th>
+            <th>Customer</th>
+            <th>Shipping address</th>
+            <th>Model</th>
+            <th>Year</th>
+            <th>Storage</th>
+            <th>Color</th>
+            <th>Condition</th>
+            <th>Battery %</th>
+            <th>Price (RM)</th>
+            <th>Status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="orders-tbody">
+          <tr><td colspan="12" class="muted center">Loading orders…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+  <!-- Add/Edit order modal -->
+  <dialog id="order-dialog">
+    <form id="order-form" method="dialog">
+      <h2 id="dialog-title">Add order</h2>
+      <input type="hidden" id="f-id" />
+
+      <div class="form-grid">
+        <label>Order # <input id="f-order_number" required /></label>
+        <label>Customer name <input id="f-customer_name" required /></label>
+        <label>Customer email <input id="f-customer_email" type="email" required /></label>
+        <label class="span-2">Shipping address <input id="f-shipping_address" required /></label>
+        <label>Model <input id="f-iphone_model" required /></label>
+        <label>Year <input id="f-model_year" type="number" min="2007" max="2030" required /></label>
+        <label>Storage (GB) <input id="f-storage_gb" type="number" min="16" required /></label>
+        <label>Color <input id="f-color" required /></label>
+        <label>Condition
+          <select id="f-condition" required>
+            <option value="new">New</option>
+            <option value="like_new">Like new</option>
+            <option value="used">Used</option>
+          </select>
+        </label>
+        <label>Battery health % <input id="f-battery_health" type="number" min="0" max="100" /></label>
+        <label>Price (RM) <input id="f-price" type="number" min="0" step="0.01" required /></label>
+        <label>Status
+          <select id="f-status" required>
+            <option value="pending">Pending</option>
+            <option value="processing">Processing</option>
+            <option value="shipped">Shipped</option>
+            <option value="delivered">Delivered</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+        </label>
+      </div>
+
+      <p id="form-error" class="error" role="alert"></p>
+
+      <div class="dialog-actions">
+        <button type="button" id="cancel-btn" class="ghost-btn">Cancel</button>
+        <button type="submit" id="save-btn" class="primary-btn">Save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script type="module" src="config.js"></script>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
