@@ -6,7 +6,6 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: { persistSession: true, autoRefreshToken: true },
 });
 
-// ---- Session guard: no valid session -> back to login ----
 const { data: { session } } = await supabase.auth.getSession();
 if (!session) {
   window.location.href = "index.html";
@@ -22,15 +21,20 @@ document.getElementById("logout-btn").addEventListener("click", async () => {
   window.location.href = "index.html";
 });
 
-// ---- State ----
 let orders = [];
 let sortKey = null;
-let sortDir = 1; // 1 = ascending, -1 = descending
+let sortDir = 1;
+let currentPage = 1;
+const PAGE_SIZE = 20;
 const tbody = document.getElementById("orders-tbody");
 const countEl = document.getElementById("order-count");
 const toast = document.getElementById("save-toast");
 const searchInput = document.getElementById("search-input");
 const statusFilter = document.getElementById("status-filter");
+const pagePrevBtn = document.getElementById("page-prev");
+const pageNextBtn = document.getElementById("page-next");
+const pageIndicator = document.getElementById("page-indicator");
+const paginationSummary = document.getElementById("pagination-summary");
 
 const money = (n) => Number(n).toLocaleString("en-MY", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -56,8 +60,6 @@ function showToast(msg, isError = false) {
   setTimeout(() => (toast.hidden = true), 2500);
 }
 
-// Escape any user-entered text before it goes into innerHTML — otherwise
-// a name/address field like `<img onerror=...>` is a stored XSS attack.
 function esc(str) {
   const d = document.createElement("div");
   d.textContent = str ?? "";
@@ -73,7 +75,7 @@ async function loadOrders() {
 
   if (error) {
     tbody.innerHTML = `<tr><td colspan="12" class="muted center">Could not load orders.</td></tr>`;
-    console.error(error.message); // never log tokens/passwords — only safe error text
+    console.error(error.message);
     return;
   }
   orders = data;
@@ -116,15 +118,29 @@ function render() {
     if (th) th.textContent = sortDir === 1 ? "▲" : "▼";
   }
 
-  if (filtered.length === 0) {
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  if (currentPage > totalPages) currentPage = totalPages;
+  if (currentPage < 1) currentPage = 1;
+
+  const start = (currentPage - 1) * PAGE_SIZE;
+  const pageItems = filtered.slice(start, start + PAGE_SIZE);
+
+  pageIndicator.textContent = `Page ${currentPage} of ${totalPages}`;
+  paginationSummary.textContent = filtered.length === 0
+    ? "No orders"
+    : `Showing ${start + 1}–${Math.min(start + PAGE_SIZE, filtered.length)} of ${filtered.length}`;
+  pagePrevBtn.disabled = currentPage <= 1;
+  pageNextBtn.disabled = currentPage >= totalPages;
+
+  if (pageItems.length === 0) {
     tbody.innerHTML = `<tr><td colspan="12" class="muted center">No orders match.</td></tr>`;
     return;
   }
 
-  tbody.innerHTML = filtered
+  tbody.innerHTML = pageItems
     .map(
       (o, i) => `
-    <tr data-id="${o.id}" style="animation-delay: ${Math.min(i * 18, 300)}ms">
+    <tr data-id="${o.id}" style="animation-delay: ${Math.min(i * 18, 200)}ms">
       <td>${esc(o.order_number)}</td>
       <td>
         <div>${esc(o.customer_name)}</div>
@@ -146,14 +162,15 @@ function render() {
         </select>
       </td>
       <td>
-        <button class="row-edit ghost-btn">Edit</button>
-        <button class="row-delete">Delete</button>
+        <div class="action-cell">
+          <button class="action-btn edit row-edit">✎ Edit</button>
+          <button class="action-btn delete row-delete">🗑 Delete</button>
+        </div>
       </td>
     </tr>`
     )
     .join("");
 
-  // Inline status change -> save immediately, refetch to confirm persistence
   tbody.querySelectorAll(".status-select").forEach((sel) => {
     sel.addEventListener("change", async (e) => {
       const id = e.target.closest("tr").dataset.id;
@@ -166,7 +183,7 @@ function render() {
         return;
       }
       showToast("Status updated.");
-      await loadOrders(); // re-pull from DB so a page refresh always matches this view
+      await loadOrders();
     });
   });
 
@@ -192,8 +209,8 @@ function render() {
   });
 }
 
-searchInput.addEventListener("input", render);
-statusFilter.addEventListener("change", render);
+searchInput.addEventListener("input", () => { currentPage = 1; render(); });
+statusFilter.addEventListener("change", () => { currentPage = 1; render(); });
 document.getElementById("refresh-btn").addEventListener("click", loadOrders);
 
 document.querySelectorAll("th.sortable").forEach((th) => {
@@ -201,11 +218,14 @@ document.querySelectorAll("th.sortable").forEach((th) => {
     const key = th.dataset.sort;
     if (sortKey === key) sortDir *= -1;
     else { sortKey = key; sortDir = 1; }
+    currentPage = 1;
     render();
   });
 });
 
-// ---- Add / Edit dialog ----
+pagePrevBtn.addEventListener("click", () => { currentPage -= 1; render(); });
+pageNextBtn.addEventListener("click", () => { currentPage += 1; render(); });
+
 const dialog = document.getElementById("order-dialog");
 const dialogTitle = document.getElementById("dialog-title");
 const orderForm = document.getElementById("order-form");
@@ -224,7 +244,6 @@ const yearInput = document.getElementById("f-model_year");
 const conditionSelect = document.getElementById("f-condition");
 const batteryInput = document.getElementById("f-battery_health");
 
-// Populate the model dropdown once, grouped newest-first.
 modelSelect.innerHTML = [...IPHONE_MODELS]
   .reverse()
   .map((m) => `<option value="${m.name}">${m.name} (${m.year})</option>`)
@@ -263,7 +282,7 @@ function openDialog(order = null) {
   document.getElementById("f-id").value = order?.id ?? "";
 
   fields.forEach((f) => {
-    if (["iphone_model", "storage_gb", "color", "model_year"].includes(f)) return; // handled below
+    if (["iphone_model", "storage_gb", "color", "model_year"].includes(f)) return;
     document.getElementById(`f-${f}`).value = order ? order[f] ?? "" : "";
   });
 
@@ -293,8 +312,6 @@ orderForm.addEventListener("submit", async (e) => {
     payload[f] = v;
   });
 
-  // Basic client-side sanity check (defense in depth — the real
-  // constraints live in the database via CHECK constraints).
   if (payload.condition === "new") payload.battery_health = null;
 
   const query = id
@@ -312,5 +329,4 @@ orderForm.addEventListener("submit", async (e) => {
   await loadOrders();
 });
 
-// Initial load
 await loadOrders();
