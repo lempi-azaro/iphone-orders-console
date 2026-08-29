@@ -9,9 +9,16 @@
 </head>
 <body>
   <header class="topbar">
-    <div class="brand">
-      <span class="brand-mark">◆</span>
-      <span class="brand-name">Order Console</span>
+    <div class="topbar-inner">
+      <div class="brand">
+        <span class="brand-mark">◆</span>
+        <span class="brand-name">Order Console</span>
+      </div>
+      <nav class="topnav">
+        <a href="home.html">Home</a>
+        <a href="dashboard.html" class="active">Orders</a>
+        <a href="settings.html">Settings</a>
+      </nav>
     </div>
     <div class="topbar-right">
       <span id="user-email" class="muted"></span>
@@ -42,6 +49,7 @@
           <option value="shipped">Shipped</option>
           <option value="delivered">Delivered</option>
           <option value="cancelled">Cancelled</option>
+          <option value="refunded">Refunded</option>
         </select>
         <button id="refresh-btn" class="ghost-btn">Refresh</button>
         <button id="add-order-btn" class="primary-btn">+ Add order</button>
@@ -135,9 +143,49 @@
             <option value="shipped">Shipped</option>
             <option value="delivered">Delivered</option>
             <option value="cancelled">Cancelled</option>
+            <option value="refunded">Refunded</option>
           </select>
         </label>
       </div>
+
+      <details class="estimator-box">
+        <summary>Estimate price &amp; battery from condition (like a trade-in check)</summary>
+        <p class="muted small">Answer a few questions — same idea as Apple's trade-in flow — and get a suggested price and battery health. You can still edit both manually after.</p>
+        <div class="form-grid">
+          <label>Screen condition
+            <select id="est-screen">
+              <option value="flawless">No scratches</option>
+              <option value="minor_scratches">Minor scratches</option>
+              <option value="cracked">Cracked / chipped</option>
+            </select>
+          </label>
+          <label>Body condition
+            <select id="est-body">
+              <option value="flawless">No scratches</option>
+              <option value="minor_scratches">Minor scratches/dents</option>
+              <option value="dents_or_cracks">Dents or cracked back</option>
+            </select>
+          </label>
+          <label>Parts replaced
+            <select id="est-parts">
+              <option value="none">None (all original)</option>
+              <option value="screen">Screen replaced</option>
+              <option value="battery">Battery replaced</option>
+              <option value="back_glass">Back glass replaced</option>
+              <option value="multiple">Multiple parts replaced</option>
+            </select>
+          </label>
+          <label>Years in use
+            <input id="est-years" type="number" min="0" max="10" placeholder="auto from model" />
+          </label>
+          <label class="checkbox-label"><input type="checkbox" id="est-faceid" checked /> Face/Touch ID works</label>
+          <label class="checkbox-label"><input type="checkbox" id="est-camera" checked /> Cameras work properly</label>
+          <label class="checkbox-label"><input type="checkbox" id="est-charging" checked /> Charging port works</label>
+          <label class="checkbox-label"><input type="checkbox" id="est-water" /> Water damage exposure</label>
+        </div>
+        <button type="button" id="run-estimate-btn" class="ghost-btn" style="margin-top:12px;">Calculate estimate</button>
+        <p id="estimate-result" class="estimate-result"></p>
+      </details>
 
       <p id="form-error" class="error" role="alert"></p>
 
