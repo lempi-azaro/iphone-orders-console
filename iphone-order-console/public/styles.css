@@ -39,6 +39,10 @@
 :root[data-theme="dark"] tbody tr:nth-child(even) { background: #1a1d22; }
 :root[data-theme="dark"] tbody tr:hover { background: #202429; }
 :root[data-theme="dark"] .action-btn { background: #21252b; }
+:root[data-theme="dark"] .sidebar-toggle-btn,
+:root[data-theme="dark"] .theme-toggle-fixed {
+  background: #1c1f24; border-color: var(--line);
+}
 body {
   margin: 0;
   background: var(--paper);
@@ -100,8 +104,28 @@ button { font-family: inherit; cursor: pointer; }
 .sidebar {
   width: 216px; flex-shrink: 0; background: #fff; border-right: 1px solid var(--line);
   display: flex; flex-direction: column; padding: 20px 14px; position: sticky; top: 0; height: 100vh;
+  transition: width 0.18s ease, padding 0.18s ease; overflow: hidden;
 }
-.sidebar-brand { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 15px; padding: 0 8px; margin-bottom: 26px; }
+html.sidebar-collapsed .sidebar { width: 0; padding: 20px 0; border: none; }
+html.sidebar-collapsed .sidebar > * { opacity: 0; pointer-events: none; }
+
+.sidebar-toggle-btn {
+  position: fixed; top: 18px; left: 226px; z-index: 60;
+  width: 30px; height: 30px; border-radius: 6px; border: 1px solid var(--line); background: #fff;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+  cursor: pointer; transition: left 0.18s ease;
+}
+.sidebar-toggle-btn span { display: block; width: 14px; height: 2px; background: var(--muted); border-radius: 1px; }
+html.sidebar-collapsed .sidebar-toggle-btn { left: 10px; }
+
+.theme-toggle-fixed {
+  position: fixed; top: 18px; right: 18px; z-index: 60;
+  width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--line); background: #fff;
+  display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 15px; color: var(--muted);
+}
+.theme-toggle-fixed:hover { background: var(--accent-soft); color: var(--accent); }
+
+.sidebar-brand { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 15px; padding: 0 8px; margin-bottom: 26px; white-space: nowrap; }
 .sidebar-nav { display: flex; flex-direction: column; gap: 2px; flex: 1; }
 .sidebar-nav a {
   padding: 9px 12px; border-radius: 6px; color: var(--muted); text-decoration: none;
