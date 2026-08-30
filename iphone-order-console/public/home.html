@@ -6,60 +6,60 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; connect-src 'self' https://*.supabase.co; img-src 'self' data:;">
 <title>Home · Order Console</title>
 <link rel="stylesheet" href="styles.css" />
+<script>document.documentElement.dataset.theme = localStorage.getItem("theme") || "light";</script>
 </head>
 <body>
-  <header class="topbar">
-    <div class="topbar-inner">
-      <div class="brand">
-        <span class="brand-mark">◆</span>
-        <span class="brand-name">Order Console</span>
-      </div>
-      <nav class="topnav">
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="sidebar-brand"><span class="brand-mark">◆</span><span>Order Console</span></div>
+      <nav class="sidebar-nav">
         <a href="home.html" class="active">Home</a>
-        <a href="dashboard.html">Orders</a>
+        <a href="dashboard.html">iPhone Orders</a>
         <a href="settings.html">Settings</a>
       </nav>
-    </div>
-    <div class="topbar-right">
-      <span id="user-email" class="muted"></span>
-      <button id="logout-btn" class="ghost-btn">Sign out</button>
-    </div>
-  </header>
-
-  <main class="dashboard">
-    <div class="dashboard-head">
-      <div>
-        <h1 id="store-title">Overview</h1>
-        <p class="muted">Live snapshot of orders and stock.</p>
+      <div class="sidebar-footer">
+        <span id="user-email" class="muted"></span>
+        <button id="logout-btn" class="ghost-btn">Sign Out</button>
       </div>
-    </div>
+    </aside>
 
-    <div class="stats-row">
-      <div class="stat-card"><span class="stat-num" id="stat-total">—</span><span class="stat-label">Total orders</span></div>
-      <div class="stat-card"><span class="stat-num" id="stat-revenue">—</span><span class="stat-label">Total value (RM)</span></div>
-      <div class="stat-card stat-pending"><span class="stat-num" id="stat-pending">—</span><span class="stat-label">Pending</span></div>
-      <div class="stat-card"><span class="stat-num" id="stat-refunded">—</span><span class="stat-label">Refunded</span></div>
-      <div class="stat-card stat-pending"><span class="stat-num" id="stat-lowstock">—</span><span class="stat-label">Low stock items</span></div>
-    </div>
+    <main class="main-content">
+      <div class="dashboard">
+        <div class="dashboard-head">
+          <div>
+            <h1 id="store-title">Overview</h1>
+          </div>
+        </div>
 
-    <div class="charts-row">
-      <div class="chart-card">
-        <h3>Orders by status</h3>
-        <canvas id="status-chart"></canvas>
+        <div class="stats-row">
+          <div class="stat-card"><span class="stat-num" id="stat-total">0</span><span class="stat-label">Total Orders</span></div>
+          <div class="stat-card"><span class="stat-num" id="stat-revenue">0</span><span class="stat-label">Total Value (RM)</span></div>
+          <div class="stat-card stat-pending"><span class="stat-num" id="stat-pending">0</span><span class="stat-label">Pending</span></div>
+          <div class="stat-card"><span class="stat-num" id="stat-refunded">0</span><span class="stat-label">Refunded</span></div>
+          <div class="stat-card stat-pending"><span class="stat-num" id="stat-lowstock">0</span><span class="stat-label">Low Stock Items</span></div>
+        </div>
+
+        <div class="charts-row">
+          <div class="chart-card">
+            <h3>Orders By Status</h3>
+            <canvas id="status-chart"></canvas>
+          </div>
+          <div class="chart-card">
+            <h3>Orders By Category</h3>
+            <canvas id="category-chart"></canvas>
+          </div>
+        </div>
+
+        <div class="low-stock-card">
+          <h3>Low Stock Inventory</h3>
+          <div id="low-stock-list"><p class="muted" style="padding: 0 18px 14px;">Loading</p></div>
+        </div>
       </div>
-      <div class="chart-card">
-        <h3>Orders by category</h3>
-        <canvas id="category-chart"></canvas>
-      </div>
-    </div>
-
-    <div class="low-stock-card">
-      <h3>Low stock inventory</h3>
-      <div id="low-stock-list"><p class="muted" style="padding: 0 18px 14px;">Loading…</p></div>
-    </div>
-  </main>
+    </main>
+  </div>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
   <script type="module" src="config.js"></script>
   <script type="module" src="home.js"></script>
 </body>
