@@ -18,7 +18,7 @@ document.getElementById("logout-btn").addEventListener("click", async () => {
   window.location.href = "index.html";
 });
 
-// ---- Password change ----
+// ---- Password change (available to every user, this is their own account) ----
 document.getElementById("save-password-btn").addEventListener("click", async () => {
   const pwd = document.getElementById("new-password").value;
   const msg = document.getElementById("password-msg");
@@ -31,74 +31,23 @@ document.getElementById("save-password-btn").addEventListener("click", async () 
   if (!error) document.getElementById("new-password").value = "";
 });
 
-// ---- Two-factor authentication (Supabase native TOTP) ----
-let pendingFactorId = null;
-const mfaStatusEl = document.getElementById("mfa-status");
-const mfaToggleBtn = document.getElementById("mfa-toggle-btn");
-const mfaVerifyBtn = document.getElementById("mfa-verify-btn");
-const mfaEnrollSection = document.getElementById("mfa-enroll-section");
-const mfaMsg = document.getElementById("mfa-msg");
-
-async function refreshMfaStatus() {
-  const { data, error } = await supabase.auth.mfa.listFactors();
-  if (error) { mfaStatusEl.textContent = "Unavailable"; return; }
-
-  const verified = data?.totp?.find((f) => f.status === "verified");
-  if (verified) {
-    mfaStatusEl.textContent = "Enabled";
-    mfaToggleBtn.textContent = "Disable Two-Factor Authentication";
-    mfaToggleBtn.dataset.mode = "disable";
-    mfaToggleBtn.dataset.factorId = verified.id;
-    mfaEnrollSection.hidden = true;
-    mfaVerifyBtn.hidden = true;
-  } else {
-    mfaStatusEl.textContent = "Not Enabled";
-    mfaToggleBtn.textContent = "Enable Two-Factor Authentication";
-    mfaToggleBtn.dataset.mode = "enable";
-  }
-}
-
-mfaToggleBtn.addEventListener("click", async () => {
-  mfaMsg.textContent = "";
-  if (mfaToggleBtn.dataset.mode === "disable") {
-    const { error } = await supabase.auth.mfa.unenroll({ factorId: mfaToggleBtn.dataset.factorId });
-    if (error) { mfaMsg.textContent = "Could not disable two-factor authentication."; return; }
-    await refreshMfaStatus();
-    return;
-  }
-
-  const { data, error } = await supabase.auth.mfa.enroll({ factorType: "totp" });
-  if (error) { mfaMsg.textContent = "Could not start enrollment."; return; }
-
-  pendingFactorId = data.id;
-  document.getElementById("mfa-qr").innerHTML = data.totp.qr_code;
-  mfaEnrollSection.hidden = false;
-  mfaVerifyBtn.hidden = false;
-  mfaMsg.textContent = "Scan the code with an authenticator app, then enter the 6-digit code.";
-});
-
-mfaVerifyBtn.addEventListener("click", async () => {
-  const code = document.getElementById("mfa-code").value.trim();
-  if (!code) { mfaMsg.textContent = "Enter the 6-digit code first."; return; }
-
-  const { data: challenge, error: challengeErr } = await supabase.auth.mfa.challenge({ factorId: pendingFactorId });
-  if (challengeErr) { mfaMsg.textContent = "Could not verify. Try again."; return; }
-
-  const { error } = await supabase.auth.mfa.verify({ factorId: pendingFactorId, challengeId: challenge.id, code });
-  if (error) { mfaMsg.textContent = "Invalid code. Try again."; return; }
-
-  mfaMsg.textContent = "Two-factor authentication enabled.";
-  await refreshMfaStatus();
-});
-
-await refreshMfaStatus();
-
-// ---- Store settings ----
+// ---- Business Profile (admin only, enforced by RLS; hidden here too for clarity) ----
 async function loadSettings() {
-  const { data } = await supabase.from("app_settings").select("*").eq("id", 1).maybeSingle();
-  if (data) {
-    document.getElementById("store-name").value = data.store_name ?? "";
-    document.getElementById("low-stock-threshold").value = data.low_stock_threshold ?? 5;
+  const [{ data: staff }, { data: settingsRow }] = await Promise.all([
+    supabase.from("staff").select("role").eq("id", session.user.id).maybeSingle(),
+    supabase.from("app_settings").select("*").eq("id", 1).maybeSingle(),
+  ]);
+
+  const isAdmin = staff?.role === "admin";
+  document.getElementById("save-settings-btn").disabled = !isAdmin;
+  document.getElementById("store-name").disabled = !isAdmin;
+  document.getElementById("low-stock-threshold").disabled = !isAdmin;
+  document.getElementById("admin-only-note").hidden = isAdmin;
+
+  if (settingsRow) {
+    document.getElementById("store-name").value = settingsRow.store_name ?? "";
+    document.getElementById("low-stock-threshold").value = settingsRow.low_stock_threshold ?? 5;
+    if (settingsRow.store_name) document.getElementById("brand-name-text").textContent = settingsRow.store_name;
   }
 }
 
