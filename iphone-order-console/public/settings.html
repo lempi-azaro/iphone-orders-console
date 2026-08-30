@@ -6,56 +6,87 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; connect-src 'self' https://*.supabase.co; img-src 'self' data:;">
 <title>Settings · Order Console</title>
 <link rel="stylesheet" href="styles.css" />
+<script>document.documentElement.dataset.theme = localStorage.getItem("theme") || "light";</script>
 </head>
 <body>
-  <header class="topbar">
-    <div class="topbar-inner">
-      <div class="brand">
-        <span class="brand-mark">◆</span>
-        <span class="brand-name">Order Console</span>
-      </div>
-      <nav class="topnav">
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="sidebar-brand"><span class="brand-mark">◆</span><span>Order Console</span></div>
+      <nav class="sidebar-nav">
         <a href="home.html">Home</a>
-        <a href="dashboard.html">Orders</a>
+        <a href="dashboard.html">iPhone Orders</a>
         <a href="settings.html" class="active">Settings</a>
       </nav>
-    </div>
-    <div class="topbar-right">
-      <span id="user-email" class="muted"></span>
-      <button id="logout-btn" class="ghost-btn">Sign out</button>
-    </div>
-  </header>
-
-  <main class="dashboard">
-    <div class="dashboard-head"><div><h1>Settings</h1></div></div>
-
-    <div class="settings-card">
-      <h2>Account</h2>
-      <p class="muted">Signed in as <strong id="account-email">—</strong></p>
-      <label>New password
-        <input id="new-password" type="password" minlength="8" placeholder="Leave blank to keep current password" />
-      </label>
-      <div class="save-row">
-        <button id="save-password-btn" class="primary-btn">Update password</button>
-        <span id="password-msg" class="muted"></span>
+      <div class="sidebar-footer">
+        <span id="user-email" class="muted"></span>
+        <button id="logout-btn" class="ghost-btn">Sign Out</button>
       </div>
-    </div>
+    </aside>
 
-    <div class="settings-card">
-      <h2>Store</h2>
-      <p class="muted">Shown at the top of the Home page.</p>
-      <label>Store name
-        <input id="store-name" type="text" />
-      </label>
-      <label>Low-stock threshold
-        <input id="low-stock-threshold" type="number" min="1" />
-      </label>
-      <div class="save-row">
-        <button id="save-settings-btn" class="primary-btn">Save settings</button>
-        <span id="settings-msg" class="muted"></span>
+    <main class="main-content">
+      <div class="dashboard">
+        <div class="dashboard-head"><div><h1>Settings</h1></div></div>
+
+        <div class="settings-card">
+          <h2>Account</h2>
+          <p class="muted">Signed In As <strong id="account-email">Loading</strong></p>
+          <label>New Password
+            <input id="new-password" type="password" minlength="8" placeholder="Leave blank to keep current password" />
+          </label>
+          <div class="save-row">
+            <button id="save-password-btn" class="primary-btn">Update Password</button>
+            <span id="password-msg" class="muted"></span>
+          </div>
+        </div>
+
+        <div class="settings-card">
+          <h2>Two-Factor Authentication</h2>
+          <p class="muted">Status: <strong id="mfa-status">Checking</strong></p>
+          <div id="mfa-enroll-section" hidden>
+            <div id="mfa-qr" style="margin: 10px 0;"></div>
+            <label>Enter 6-Digit Code
+              <input id="mfa-code" type="text" maxlength="6" inputmode="numeric" />
+            </label>
+          </div>
+          <div class="save-row">
+            <button id="mfa-toggle-btn" class="primary-btn">Enable Two-Factor Authentication</button>
+            <button id="mfa-verify-btn" class="ghost-btn" hidden>Verify Code</button>
+            <span id="mfa-msg" class="muted"></span>
+          </div>
+        </div>
+
+        <div class="settings-card">
+          <h2>Appearance</h2>
+          <label>Theme
+            <select id="theme-select">
+              <option value="light">Light</option>
+              <option value="dark">Dark</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="settings-card">
+          <h2>Notifications</h2>
+          <label class="checkbox-label"><input type="checkbox" id="notify-low-stock" disabled /> Email Alerts For Low Stock (Coming Soon)</label>
+          <label class="checkbox-label"><input type="checkbox" id="notify-new-order" disabled /> Email Alerts For New Orders (Coming Soon)</label>
+        </div>
+
+        <div class="settings-card">
+          <h2>Store</h2>
+          <label>Store Name
+            <input id="store-name" type="text" />
+          </label>
+          <label>Low Stock Threshold
+            <input id="low-stock-threshold" type="number" min="1" />
+          </label>
+          <div class="save-row">
+            <button id="save-settings-btn" class="primary-btn">Save Settings</button>
+            <span id="settings-msg" class="muted"></span>
+          </div>
+        </div>
       </div>
-    </div>
-  </main>
+    </main>
+  </div>
 
   <script type="module" src="config.js"></script>
   <script type="module" src="settings.js"></script>
