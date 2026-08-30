@@ -17,63 +17,73 @@ document.getElementById("logout-btn").addEventListener("click", async () => {
   window.location.href = "index.html";
 });
 
-const titleCase = (s) => s.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 const esc = (str) => { const d = document.createElement("div"); d.textContent = str ?? ""; return d.innerHTML; };
 
-async function loadUsers() {
-  const { data: staff, error } = await supabase.from("staff").select("*").order("full_name");
-  if (error) {
-    document.getElementById("admin-list").innerHTML = `<p class="muted">Could not load users.</p>`;
-    return;
-  }
+let isCurrentUserAdmin = false;
 
-  const admins = staff.filter((s) => s.role === "admin");
-  const staffMembers = staff.filter((s) => s.role === "staff");
-
-  document.getElementById("admin-list").innerHTML = admins.length
-    ? admins.map(renderUserRow).join("")
-    : `<p class="muted">No admins yet.</p>`;
-  document.getElementById("staff-list").innerHTML = staffMembers.length
-    ? staffMembers.map(renderUserRow).join("")
-    : `<p class="muted">No staff yet.</p>`;
-
-  // Show the Add User form only to admins. This mirrors the database-level
-  // RLS policy, which is the real enforcement; hiding the form here is just
-  // for a cleaner experience, not the security boundary itself.
-  const me = staff.find((s) => s.id === session.user.id);
-  if (me?.role === "admin") {
-    document.getElementById("add-user-card").hidden = false;
-  }
-}
-
-function renderUserRow(s) {
-  return `<div class="low-stock-row"><span>${esc(s.full_name)}<span class="muted"> (${esc(s.email)})</span></span></div>`;
-}
-
-async function loadActivity() {
-  const [{ data: audit, error }, { data: staff }] = await Promise.all([
-    supabase.from("orders_audit").select("*").order("changed_at", { ascending: false }).limit(30),
-    supabase.from("staff").select("id, full_name"),
+async function loadTeam() {
+  const [{ data: staff, error }, { data: orderAudit }, { data: invAudit }] = await Promise.all([
+    supabase.from("staff").select("*").order("full_name"),
+    supabase.from("orders_audit").select("changed_by"),
+    supabase.from("inventory_audit").select("changed_by"),
   ]);
 
-  const listEl = document.getElementById("activity-list");
-  if (error || !audit || audit.length === 0) {
-    listEl.innerHTML = `<p class="muted" style="padding: 0 18px 14px;">No Activity Yet.</p>`;
+  if (error) {
+    document.getElementById("team-tbody").innerHTML = `<tr><td colspan="5" class="muted">Could not load users.</td></tr>`;
     return;
   }
 
-  const nameById = new Map((staff ?? []).map((s) => [s.id, s.full_name]));
-  const verbMap = { insert: "Added", update: "Updated", delete: "Deleted" };
+  // Movements = every logged action (order or inventory) attributed to this user.
+  const movementCounts = new Map();
+  [...(orderAudit ?? []), ...(invAudit ?? [])].forEach((row) => {
+    if (!row.changed_by) return;
+    movementCounts.set(row.changed_by, (movementCounts.get(row.changed_by) ?? 0) + 1);
+  });
 
-  listEl.innerHTML = audit
-    .map((a) => {
-      const who = nameById.get(a.changed_by) ?? "Unknown User";
-      const orderNum = a.new_data?.order_number ?? a.old_data?.order_number ?? "an order";
-      const when = new Date(a.changed_at).toLocaleString();
-      const verb = verbMap[a.action] ?? titleCase(a.action);
-      return `<div class="low-stock-row"><span>${esc(who)} ${esc(verb)} ${esc(orderNum)}</span><span class="muted">${esc(when)}</span></div>`;
-    })
-    .join("");
+  document.getElementById("team-count").textContent = `${staff.length} Account${staff.length === 1 ? "" : "s"}.`;
+
+  const me = staff.find((s) => s.id === session.user.id);
+  isCurrentUserAdmin = me?.role === "admin";
+  document.getElementById("add-user-card").hidden = !isCurrentUserAdmin;
+
+  document.getElementById("team-tbody").innerHTML = staff.length
+    ? staff.map((s) => renderRow(s, movementCounts.get(s.id) ?? 0)).join("")
+    : `<tr><td colspan="5" class="muted">No users yet.</td></tr>`;
+
+  document.querySelectorAll(".role-select").forEach((sel) => {
+    sel.addEventListener("change", async (e) => {
+      if (!isCurrentUserAdmin) return;
+      const { error } = await supabase.from("staff").update({ role: e.target.value }).eq("id", e.target.dataset.id);
+      if (error) { alert("Could not update role: " + error.message); await loadTeam(); return; }
+      await loadTeam();
+    });
+  });
+
+  document.querySelectorAll(".delete-user-btn").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      if (!confirm("Remove this user's access? This does not delete their login.")) return;
+      const { error } = await supabase.from("staff").delete().eq("id", btn.dataset.id);
+      if (error) { alert("Could not remove user: " + error.message); return; }
+      await loadTeam();
+    });
+  });
+}
+
+function renderRow(s, movements) {
+  const isMe = s.id === session.user.id;
+  return `
+    <tr>
+      <td>${esc(s.full_name)}${isMe ? '<span class="you-badge">You</span>' : ""}</td>
+      <td class="muted">${esc(s.email)}</td>
+      <td>${movements}</td>
+      <td>
+        <select class="role-select" data-id="${s.id}" ${isCurrentUserAdmin ? "" : "disabled"}>
+          <option value="admin" ${s.role === "admin" ? "selected" : ""}>Administrator</option>
+          <option value="staff" ${s.role === "staff" ? "selected" : ""}>Staff</option>
+        </select>
+      </td>
+      <td>${isCurrentUserAdmin && !isMe ? `<button class="ghost-btn small-btn delete-user-btn" data-id="${s.id}" style="color: var(--danger); border-color: var(--danger);">Delete</button>` : ""}</td>
+    </tr>`;
 }
 
 // ---- Add User (admin only) ----
@@ -106,17 +116,14 @@ document.getElementById("add-user-btn").addEventListener("click", async () => {
 
   const newUserId = signUpData.user?.id;
   if (!newUserId) {
-    msg.textContent = "Account created, but could not confirm the new user ID. Check Supabase Authentication.";
+    msg.textContent = "Account created, but could not confirm the new user ID.";
     msg.style.color = "var(--danger)";
     return;
   }
 
-  const { error: staffError } = await supabase
-    .from("staff")
-    .insert({ id: newUserId, full_name: name, email, role });
-
+  const { error: staffError } = await supabase.from("staff").insert({ id: newUserId, full_name: name, email, role });
   if (staffError) {
-    msg.textContent = "Login created, but adding to the staff directory failed: " + staffError.message;
+    msg.textContent = "Login created, but adding to the team failed: " + staffError.message;
     msg.style.color = "var(--danger)";
     return;
   }
@@ -126,8 +133,7 @@ document.getElementById("add-user-btn").addEventListener("click", async () => {
   document.getElementById("new-user-name").value = "";
   document.getElementById("new-user-email").value = "";
   document.getElementById("new-user-password").value = "";
-  await loadUsers();
+  await loadTeam();
 });
 
-await loadUsers();
-await loadActivity();
+await loadTeam();
