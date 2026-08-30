@@ -6,12 +6,19 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; connect-src 'self' https://*.supabase.co; img-src 'self' data:;">
 <title>Home · Order Console</title>
 <link rel="stylesheet" href="styles.css" />
-<script>document.documentElement.dataset.theme = localStorage.getItem("theme") || "light";</script>
+<script>
+  document.documentElement.dataset.theme = localStorage.getItem("theme") || "light";
+  if (localStorage.getItem("sidebarCollapsed") === "true") document.documentElement.classList.add("sidebar-collapsed");
+</script>
 </head>
 <body>
+  <button id="sidebar-toggle-btn" class="sidebar-toggle-btn" title="Toggle Sidebar" aria-label="Toggle Sidebar">
+    <span></span><span></span><span></span>
+  </button>
+  <button id="theme-toggle-btn" class="theme-toggle-fixed" title="Toggle Dark Mode" aria-label="Toggle Dark Mode">◐</button>
   <div class="app-shell">
     <aside class="sidebar">
-      <div class="sidebar-brand"><span class="brand-mark">◆</span><span>Order Console</span></div>
+      <div class="sidebar-brand"><span class="brand-mark">◆</span><span id="brand-name-text">Order Console</span></div>
       <nav class="sidebar-nav">
         <a href="home.html" class="active">Home</a>
         <a href="dashboard.html">iPhone Orders</a>
@@ -20,7 +27,6 @@
       </nav>
       <div class="sidebar-footer">
         <span id="user-email" class="muted"></span>
-        <button id="theme-toggle-btn" class="ghost-btn">Switch To Dark Mode</button>
         <button id="logout-btn" class="ghost-btn">Sign Out</button>
       </div>
     </aside>
