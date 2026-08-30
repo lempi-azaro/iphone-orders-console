@@ -6,12 +6,19 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; connect-src 'self' https://*.supabase.co; img-src 'self' data:;">
 <title>Settings · Order Console</title>
 <link rel="stylesheet" href="styles.css" />
-<script>document.documentElement.dataset.theme = localStorage.getItem("theme") || "light";</script>
+<script>
+  document.documentElement.dataset.theme = localStorage.getItem("theme") || "light";
+  if (localStorage.getItem("sidebarCollapsed") === "true") document.documentElement.classList.add("sidebar-collapsed");
+</script>
 </head>
 <body>
+  <button id="sidebar-toggle-btn" class="sidebar-toggle-btn" title="Toggle Sidebar" aria-label="Toggle Sidebar">
+    <span></span><span></span><span></span>
+  </button>
+  <button id="theme-toggle-btn" class="theme-toggle-fixed" title="Toggle Dark Mode" aria-label="Toggle Dark Mode">◐</button>
   <div class="app-shell">
     <aside class="sidebar">
-      <div class="sidebar-brand"><span class="brand-mark">◆</span><span>Order Console</span></div>
+      <div class="sidebar-brand"><span class="brand-mark">◆</span><span id="brand-name-text">Order Console</span></div>
       <nav class="sidebar-nav">
         <a href="home.html">Home</a>
         <a href="dashboard.html">iPhone Orders</a>
@@ -20,7 +27,6 @@
       </nav>
       <div class="sidebar-footer">
         <span id="user-email" class="muted"></span>
-        <button id="theme-toggle-btn" class="ghost-btn">Switch To Dark Mode</button>
         <button id="logout-btn" class="ghost-btn">Sign Out</button>
       </div>
     </aside>
@@ -42,40 +48,20 @@
         </div>
 
         <div class="settings-card">
-          <h2>Two-Factor Authentication</h2>
-          <p class="muted">Status: <strong id="mfa-status">Checking</strong></p>
-          <div id="mfa-enroll-section" hidden>
-            <div id="mfa-qr" style="margin: 10px 0;"></div>
-            <label>Enter 6-Digit Code
-              <input id="mfa-code" type="text" maxlength="6" inputmode="numeric" />
-            </label>
-          </div>
-          <div class="save-row">
-            <button id="mfa-toggle-btn" class="primary-btn">Enable Two-Factor Authentication</button>
-            <button id="mfa-verify-btn" class="ghost-btn" hidden>Verify Code</button>
-            <span id="mfa-msg" class="muted"></span>
-          </div>
-        </div>
-
-        <div class="settings-card">
-          <h2>Notifications</h2>
-          <label class="checkbox-label"><input type="checkbox" id="notify-low-stock" disabled /> Email Alerts For Low Stock (Coming Soon)</label>
-          <label class="checkbox-label"><input type="checkbox" id="notify-new-order" disabled /> Email Alerts For New Orders (Coming Soon)</label>
-        </div>
-
-        <div class="settings-card">
-          <h2>Store</h2>
-          <label>Store Name
+          <h2>Business Profile</h2>
+          <p class="muted">Sets the name shown in the sidebar across the whole app, and the default reorder point suggested when adding new inventory.</p>
+          <label>Business Name
             <input id="store-name" type="text" />
           </label>
-          <label>Low Stock Threshold
+          <label>Default Reorder Point
             <input id="low-stock-threshold" type="number" min="1" />
           </label>
           <div class="save-row">
-            <button id="save-settings-btn" class="primary-btn">Save Settings</button>
+            <button id="save-settings-btn" class="primary-btn">Save</button>
             <span id="settings-msg" class="muted"></span>
           </div>
         </div>
+        <p id="admin-only-note" class="muted small-note" hidden>Business Profile Settings Are Only Editable By Administrators.</p>
       </div>
     </main>
   </div>
