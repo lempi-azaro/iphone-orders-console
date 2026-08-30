@@ -10,7 +10,35 @@
   font-family: -apple-system, "Inter", "Segoe UI", sans-serif;
 }
 
-* { box-sizing: border-box; }
+:root[data-theme="dark"] {
+  --ink: #eef0ee;
+  --paper: #15171b;
+  --line: #2b2e33;
+  --accent: #6cc9ac;
+  --accent-soft: #17251f;
+  --danger: #e07c66;
+  --muted: #9aa0a6;
+}
+:root[data-theme="dark"] body { background: var(--paper); }
+:root[data-theme="dark"] .sidebar,
+:root[data-theme="dark"] .topbar,
+:root[data-theme="dark"] .stat-card,
+:root[data-theme="dark"] .chart-card,
+:root[data-theme="dark"] .low-stock-card,
+:root[data-theme="dark"] .settings-card,
+:root[data-theme="dark"] .table-wrap,
+:root[data-theme="dark"] .auth-card,
+:root[data-theme="dark"] dialog {
+  background: #1c1f24; border-color: var(--line);
+}
+:root[data-theme="dark"] input,
+:root[data-theme="dark"] select {
+  background: #21252b; color: var(--ink); border-color: var(--line);
+}
+:root[data-theme="dark"] th { background: #1a1d22; }
+:root[data-theme="dark"] tbody tr:nth-child(even) { background: #1a1d22; }
+:root[data-theme="dark"] tbody tr:hover { background: #202429; }
+:root[data-theme="dark"] .action-btn { background: #21252b; }
 body {
   margin: 0;
   background: var(--paper);
@@ -65,19 +93,24 @@ button { font-family: inherit; cursor: pointer; }
 .error { color: var(--danger); font-size: 13px; min-height: 18px; margin: 8px 0 0; }
 
 /* ---------- Dashboard ---------- */
-.topbar {
-  display: flex; justify-content: space-between; align-items: center;
-  padding: 0 24px; border-bottom: 1px solid var(--line); background: #fff; height: 58px;
+.app-shell { display: flex; min-height: 100vh; }
+.sidebar {
+  width: 216px; flex-shrink: 0; background: #fff; border-right: 1px solid var(--line);
+  display: flex; flex-direction: column; padding: 20px 14px; position: sticky; top: 0; height: 100vh;
 }
-.topbar-right { display: flex; align-items: center; gap: 12px; }
-.topnav { display: flex; gap: 4px; margin-left: 32px; }
-.topnav a {
-  text-decoration: none; color: var(--muted); font-size: 13.5px; font-weight: 600;
-  padding: 8px 12px; border-radius: 6px; transition: background 0.12s ease, color 0.12s ease;
+.sidebar-brand { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 15px; padding: 0 8px; margin-bottom: 26px; }
+.sidebar-nav { display: flex; flex-direction: column; gap: 2px; flex: 1; }
+.sidebar-nav a {
+  padding: 9px 12px; border-radius: 6px; color: var(--muted); text-decoration: none;
+  font-size: 13.5px; font-weight: 600; border-left: 3px solid transparent;
+  transition: background 0.12s ease, color 0.12s ease;
 }
-.topnav a:hover { background: var(--accent-soft); color: var(--ink); }
-.topnav a.active { color: var(--accent); background: var(--accent-soft); }
-.topbar-inner { display: flex; align-items: center; }
+.sidebar-nav a:hover { background: var(--accent-soft); color: var(--ink); }
+.sidebar-nav a.active { background: var(--accent-soft); color: var(--accent); border-left-color: var(--accent); }
+.sidebar-footer { border-top: 1px solid var(--line); padding-top: 14px; display: flex; flex-direction: column; gap: 8px; }
+.sidebar-footer .muted { font-size: 12px; word-break: break-all; padding: 0 8px; }
+.sidebar-footer .ghost-btn { width: 100%; }
+.main-content { flex: 1; padding: 24px; min-width: 0; }
 
 .charts-row { display: grid; grid-template-columns: 1.2fr 1fr; gap: 16px; margin-bottom: 20px; }
 .chart-card { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 18px; }
@@ -97,7 +130,7 @@ button { font-family: inherit; cursor: pointer; }
 .settings-card .muted { margin-bottom: 16px; }
 .settings-card label { display: block; font-size: 12px; font-weight: 600; margin-top: 14px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.03em; }
 .settings-card .save-row { margin-top: 18px; display: flex; align-items: center; gap: 10px; }
-.dashboard { padding: 24px; max-width: 1400px; margin: 0 auto; }
+.dashboard { max-width: 1400px; margin: 0 auto; }
 
 .stats-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 22px; }
 .stat-card {
