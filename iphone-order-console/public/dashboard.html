@@ -15,6 +15,7 @@
       <nav class="sidebar-nav">
         <a href="home.html">Home</a>
         <a href="dashboard.html" class="active">iPhone Orders</a>
+        <a href="users.html">Users</a>
         <a href="settings.html">Settings</a>
       </nav>
       <div class="sidebar-footer">
@@ -40,8 +41,34 @@
           </div>
           <div class="dashboard-actions">
             <input id="search-input" type="search" placeholder="Search name, order number, model" />
+            <select id="model-filter">
+              <option value="">All Models</option>
+              <option value="iPhone 13">iPhone 13</option>
+              <option value="iPhone 14">iPhone 14</option>
+              <option value="iPhone 15">iPhone 15</option>
+              <option value="iPhone 16">iPhone 16</option>
+            </select>
+            <select id="condition-filter">
+              <option value="">All Conditions</option>
+              <option value="new">New</option>
+              <option value="like_new">Like New</option>
+              <option value="used">Used</option>
+            </select>
+            <select id="unit-status-filter">
+              <option value="">All Unit Status</option>
+              <option value="available">Available</option>
+              <option value="reserved">Reserved</option>
+              <option value="sold">Sold</option>
+              <option value="under_repair">Under Repair</option>
+            </select>
+            <select id="battery-filter">
+              <option value="">All Battery</option>
+              <option value="above90">Above 90%</option>
+              <option value="80to89">80% to 89%</option>
+              <option value="below80">Below 80%</option>
+            </select>
             <select id="status-filter">
-              <option value="">All Statuses</option>
+              <option value="">All Order Status</option>
               <option value="pending">Pending</option>
               <option value="processing">Processing</option>
               <option value="shipped">Shipped</option>
@@ -50,6 +77,7 @@
               <option value="refunded">Refunded</option>
             </select>
             <button id="refresh-btn" class="ghost-btn">Refresh</button>
+            <button id="export-csv-btn" class="ghost-btn">Export CSV</button>
             <button id="add-order-btn" class="primary-btn">Add Order</button>
           </div>
         </div>
@@ -61,16 +89,17 @@
             <colgroup>
               <col style="width:85px">
               <col style="width:150px">
-              <col style="width:210px">
-              <col style="width:135px">
-              <col style="width:55px">
-              <col style="width:70px">
-              <col style="width:95px">
-              <col style="width:90px">
-              <col style="width:75px">
-              <col style="width:90px">
-              <col style="width:125px">
+              <col style="width:200px">
               <col style="width:130px">
+              <col style="width:50px">
+              <col style="width:65px">
+              <col style="width:90px">
+              <col style="width:85px">
+              <col style="width:70px">
+              <col style="width:85px">
+              <col style="width:105px">
+              <col style="width:115px">
+              <col style="width:125px">
             </colgroup>
             <thead>
               <tr>
@@ -84,12 +113,13 @@
                 <th>Condition</th>
                 <th class="sortable" data-sort="battery_health">Battery <span class="sort-arrow"></span></th>
                 <th class="sortable" data-sort="price">Price (RM) <span class="sort-arrow"></span></th>
-                <th>Status</th>
+                <th>Order Status</th>
+                <th>Unit Status</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody id="orders-tbody">
-              <tr><td colspan="12" class="muted center">Loading Orders</td></tr>
+              <tr><td colspan="13" class="muted center">Loading Orders</td></tr>
             </tbody>
           </table>
         </div>
@@ -112,7 +142,12 @@
       <input type="hidden" id="f-id" />
 
       <div class="form-grid">
-        <label>Order Number <input id="f-order_number" required /></label>
+        <label>Order Number
+          <div class="order-number-input">
+            <span class="order-number-prefix">ORD-</span>
+            <input id="f-order_number_suffix" maxlength="4" pattern="[0-9]{4}" placeholder="0001" required />
+          </div>
+        </label>
         <label>Customer Name <input id="f-customer_name" required /></label>
         <label>Customer Email <input id="f-customer_email" type="email" required /></label>
         <label class="span-2">Shipping Address <input id="f-shipping_address" required /></label>
@@ -135,7 +170,7 @@
         </label>
         <label>Battery Health % <input id="f-battery_health" type="number" min="0" max="100" /></label>
         <label>Price (RM) <input id="f-price" type="number" min="0" step="0.01" required /></label>
-        <label>Status
+        <label>Order Status
           <select id="f-status" required>
             <option value="pending">Pending</option>
             <option value="processing">Processing</option>
@@ -143,6 +178,14 @@
             <option value="delivered">Delivered</option>
             <option value="cancelled">Cancelled</option>
             <option value="refunded">Refunded</option>
+          </select>
+        </label>
+        <label>Unit Status
+          <select id="f-unit_status" required>
+            <option value="available">Available</option>
+            <option value="reserved">Reserved</option>
+            <option value="sold">Sold</option>
+            <option value="under_repair">Under Repair</option>
           </select>
         </label>
       </div>
