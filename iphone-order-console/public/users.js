@@ -17,6 +17,9 @@ document.getElementById("logout-btn").addEventListener("click", async () => {
   window.location.href = "index.html";
 });
 
+const { data: brandSettings } = await supabase.from("app_settings").select("store_name").eq("id", 1).maybeSingle();
+if (brandSettings?.store_name) document.getElementById("brand-name-text").textContent = brandSettings.store_name;
+
 const esc = (str) => { const d = document.createElement("div"); d.textContent = str ?? ""; return d.innerHTML; };
 
 let isCurrentUserAdmin = false;
@@ -45,6 +48,17 @@ async function loadTeam() {
   const me = staff.find((s) => s.id === session.user.id);
   isCurrentUserAdmin = me?.role === "admin";
   document.getElementById("add-user-card").hidden = !isCurrentUserAdmin;
+
+  const noteEl = document.getElementById("team-note");
+  if (!me) {
+    noteEl.textContent = "Your account is not yet in the team directory, so role changes and adding users are unavailable to you here. Ask an existing admin to add you, or add yourself directly in Supabase (Table Editor > staff).";
+    noteEl.hidden = false;
+  } else if (!isCurrentUserAdmin) {
+    noteEl.textContent = "You're signed in as Staff. Only Administrators can change roles or remove users.";
+    noteEl.hidden = false;
+  } else {
+    noteEl.hidden = true;
+  }
 
   document.getElementById("team-tbody").innerHTML = staff.length
     ? staff.map((s) => renderRow(s, movementCounts.get(s.id) ?? 0)).join("")
