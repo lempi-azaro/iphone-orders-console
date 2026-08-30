@@ -75,9 +75,7 @@ async function loadDashboard() {
 }
 
 function isAlertActive(item) {
-  if (item.quantity > item.reorder_threshold) return false;
-  if (!item.low_stock_acknowledged_at) return true;
-  return new Date(item.updated_at) > new Date(item.low_stock_acknowledged_at);
+  return item.quantity <= item.reorder_threshold && !item.low_stock_acknowledged;
 }
 
 function renderStatusChart(orders) {
@@ -104,7 +102,7 @@ function renderStatusChart(orders) {
 }
 
 function renderModelChart(orders) {
-  const models = ["iPhone 13", "iPhone 14", "iPhone 15", "iPhone 16"];
+  const models = ["iPhone 11", "iPhone 12", "iPhone 13", "iPhone 14", "iPhone 15", "iPhone 16", "iPhone 17", "iPhone Air"];
   const counts = models.map((m) => orders.filter((o) => o.iphone_model.startsWith(m)).length);
 
   new Chart(document.getElementById("category-chart"), {
@@ -185,7 +183,7 @@ function renderLowStock(inventory) {
     btn.addEventListener("click", async () => {
       const { error } = await supabase
         .from("inventory")
-        .update({ low_stock_acknowledged_at: new Date().toISOString() })
+        .update({ low_stock_acknowledged: true, low_stock_acknowledged_at: new Date().toISOString() })
         .eq("id", btn.dataset.id);
       if (!error) await loadDashboard();
     });
