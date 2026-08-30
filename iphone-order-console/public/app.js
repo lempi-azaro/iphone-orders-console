@@ -22,6 +22,12 @@ document.getElementById("logout-btn").addEventListener("click", async () => {
   window.location.href = "index.html";
 });
 
+const { data: myStaffRow } = await supabase.from("staff").select("role").eq("id", session.user.id).maybeSingle();
+const isAdmin = myStaffRow?.role === "admin";
+
+const { data: brandSettings } = await supabase.from("app_settings").select("store_name").eq("id", 1).maybeSingle();
+if (brandSettings?.store_name) document.getElementById("brand-name-text").textContent = brandSettings.store_name;
+
 // ---- State ----
 let orders = [];
 let sortKey = null;
@@ -196,7 +202,7 @@ function render() {
       <td>
         <div class="action-cell">
           <button class="action-btn edit row-edit">Edit</button>
-          <button class="action-btn delete row-delete">Delete</button>
+          <button class="action-btn delete row-delete" ${isAdmin ? "" : "hidden"}>Delete</button>
         </div>
       </td>
     </tr>`
