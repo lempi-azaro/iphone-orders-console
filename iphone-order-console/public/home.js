@@ -29,7 +29,7 @@ const titleCase = (s) => s.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperC
 const esc = (str) => { const d = document.createElement("div"); d.textContent = str ?? ""; return d.innerHTML; };
 
 const ACCENT = "#2f5d50";
-const PALETTE = ["#2f5d50", "#8a5a13", "#2b5aa3", "#276b3a", "#a3392b", "#5a3e9e"];
+const PALETTE = ["#f77f00", "#2563eb", "#7c3aed", "#0d9488", "#e11d48", "#eab308"];
 
 let inventoryCache = [];
 let suppliersCache = [];
@@ -50,7 +50,11 @@ async function loadDashboard() {
   inventoryCache = inventory;
   suppliersCache = suppliers ?? [];
 
-  if (settingsRow?.store_name) document.getElementById("store-title").textContent = settingsRow.store_name;
+  if (settingsRow?.store_name) document.getElementById("brand-name-text").textContent = settingsRow.store_name;
+
+  const { data: myStaffRow } = await supabase.from("staff").select("role").eq("id", session.user.id).maybeSingle();
+  const isAdmin = myStaffRow?.role === "admin";
+  document.getElementById("add-inventory-btn").hidden = !isAdmin;
 
   // ---- Stat cards ----
   const total = orders.length;
@@ -70,7 +74,7 @@ async function loadDashboard() {
   renderStatusChart(orders);
   renderModelChart(orders);
   renderTrendChart(orders);
-  renderLowStock(inventory);
+  renderLowStock(inventory, isAdmin);
   populateSupplierSelect(suppliersCache);
 }
 
@@ -149,7 +153,7 @@ function renderTrendChart(orders) {
   });
 }
 
-function renderLowStock(inventory) {
+function renderLowStock(inventory, isAdmin) {
   const lowStockItems = inventory.filter((i) => i.quantity <= i.reorder_threshold);
   const listEl = document.getElementById("low-stock-list");
 
@@ -173,7 +177,7 @@ function renderLowStock(inventory) {
           ${active
             ? `<button class="ghost-btn small-btn ack-btn" data-id="${i.id}">Acknowledge</button>`
             : `<span class="muted small-btn">Acknowledged</span>`}
-          <button class="ghost-btn small-btn edit-inv-btn" data-id="${i.id}">Edit</button>
+          <button class="ghost-btn small-btn edit-inv-btn" data-id="${i.id}" ${isAdmin ? "" : "hidden"}>Edit</button>
         </span>
       </div>`;
     })
