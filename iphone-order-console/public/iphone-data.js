@@ -56,6 +56,15 @@ export const IPHONE_MODELS = [
     colors: ["Black Titanium", "White Titanium", "Natural Titanium", "Desert Titanium"] },
   { name: "iPhone 16 Pro Max", year: 2024, storage: [256, 512, 1024], basePrice: 6799, storageStep: 450, category: "Pro Max",
     colors: ["Black Titanium", "White Titanium", "Natural Titanium", "Desert Titanium"] },
+
+  { name: "iPhone 17", year: 2025, storage: [256, 512], basePrice: 4499, storageStep: 1100, category: "Standard",
+    colors: ["Lavender", "Sage", "Mist Blue", "White", "Black"] },
+  { name: "iPhone Air", year: 2025, storage: [256, 512, 1024], basePrice: 5599, storageStep: 1100, category: "Air",
+    colors: ["Sky Blue", "Light Gold", "Cloud White", "Space Black"] },
+  { name: "iPhone 17 Pro", year: 2025, storage: [256, 512, 1024], basePrice: 6199, storageStep: 1100, category: "Pro",
+    colors: ["Cosmic Orange", "Deep Blue", "Silver"] },
+  { name: "iPhone 17 Pro Max", year: 2025, storage: [256, 512, 1024, 2048], basePrice: 6899, storageStep: 1100, category: "Pro Max",
+    colors: ["Cosmic Orange", "Deep Blue", "Silver"] },
 ];
 
 export function findModel(name) {
@@ -63,7 +72,9 @@ export function findModel(name) {
 }
 
 export function storageLabel(gb) {
-  return gb >= 1024 ? "1TB" : `${gb}GB`;
+  if (gb >= 2048) return (gb / 1024) + "TB";
+  if (gb >= 1024) return "1TB";
+  return `${gb}GB`;
 }
 
 // ---- Estimator ----
