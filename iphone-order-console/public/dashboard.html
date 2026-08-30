@@ -4,119 +4,118 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; connect-src 'self' https://*.supabase.co; img-src 'self' data:;">
-<title>Order Console</title>
+<title>iPhone Orders · Order Console</title>
 <link rel="stylesheet" href="styles.css" />
+<script>document.documentElement.dataset.theme = localStorage.getItem("theme") || "light";</script>
 </head>
 <body>
-  <header class="topbar">
-    <div class="topbar-inner">
-      <div class="brand">
-        <span class="brand-mark">◆</span>
-        <span class="brand-name">Order Console</span>
-      </div>
-      <nav class="topnav">
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="sidebar-brand"><span class="brand-mark">◆</span><span>Order Console</span></div>
+      <nav class="sidebar-nav">
         <a href="home.html">Home</a>
-        <a href="dashboard.html" class="active">Orders</a>
+        <a href="dashboard.html" class="active">iPhone Orders</a>
         <a href="settings.html">Settings</a>
       </nav>
-    </div>
-    <div class="topbar-right">
-      <span id="user-email" class="muted"></span>
-      <button id="logout-btn" class="ghost-btn">Sign out</button>
-    </div>
-  </header>
-
-  <main class="dashboard">
-    <div class="stats-row" id="stats-row">
-      <div class="stat-card"><span class="stat-num" id="stat-total">—</span><span class="stat-label">Total orders</span></div>
-      <div class="stat-card"><span class="stat-num" id="stat-revenue">—</span><span class="stat-label">Total value (RM)</span></div>
-      <div class="stat-card stat-pending"><span class="stat-num" id="stat-pending">—</span><span class="stat-label">Pending</span></div>
-      <div class="stat-card stat-transit"><span class="stat-num" id="stat-transit">—</span><span class="stat-label">Processing + shipped</span></div>
-      <div class="stat-card stat-done"><span class="stat-num" id="stat-delivered">—</span><span class="stat-label">Delivered</span></div>
-    </div>
-
-    <div class="dashboard-head">
-      <div>
-        <h1>iPhone orders</h1>
-        <p class="muted"><span id="order-count">—</span> orders</p>
+      <div class="sidebar-footer">
+        <span id="user-email" class="muted"></span>
+        <button id="logout-btn" class="ghost-btn">Sign Out</button>
       </div>
-      <div class="dashboard-actions">
-        <input id="search-input" type="search" placeholder="Search name, order #, model…" />
-        <select id="status-filter">
-          <option value="">All statuses</option>
-          <option value="pending">Pending</option>
-          <option value="processing">Processing</option>
-          <option value="shipped">Shipped</option>
-          <option value="delivered">Delivered</option>
-          <option value="cancelled">Cancelled</option>
-          <option value="refunded">Refunded</option>
-        </select>
-        <button id="refresh-btn" class="ghost-btn">Refresh</button>
-        <button id="add-order-btn" class="primary-btn">+ Add order</button>
+    </aside>
+
+    <main class="main-content">
+      <div class="dashboard">
+        <div class="stats-row" id="stats-row">
+          <div class="stat-card"><span class="stat-num" id="stat-total">0</span><span class="stat-label">Total Orders</span></div>
+          <div class="stat-card"><span class="stat-num" id="stat-revenue">0</span><span class="stat-label">Total Value (RM)</span></div>
+          <div class="stat-card stat-pending"><span class="stat-num" id="stat-pending">0</span><span class="stat-label">Pending</span></div>
+          <div class="stat-card stat-transit"><span class="stat-num" id="stat-transit">0</span><span class="stat-label">Processing + Shipped</span></div>
+          <div class="stat-card stat-done"><span class="stat-num" id="stat-delivered">0</span><span class="stat-label">Delivered</span></div>
+        </div>
+
+        <div class="dashboard-head">
+          <div>
+            <h1>iPhone Orders</h1>
+            <p class="muted"><span id="order-count">0</span> Orders</p>
+          </div>
+          <div class="dashboard-actions">
+            <input id="search-input" type="search" placeholder="Search name, order number, model" />
+            <select id="status-filter">
+              <option value="">All Statuses</option>
+              <option value="pending">Pending</option>
+              <option value="processing">Processing</option>
+              <option value="shipped">Shipped</option>
+              <option value="delivered">Delivered</option>
+              <option value="cancelled">Cancelled</option>
+              <option value="refunded">Refunded</option>
+            </select>
+            <button id="refresh-btn" class="ghost-btn">Refresh</button>
+            <button id="add-order-btn" class="primary-btn">Add Order</button>
+          </div>
+        </div>
+
+        <p id="save-toast" class="toast" hidden></p>
+
+        <div class="table-wrap">
+          <table id="orders-table">
+            <colgroup>
+              <col style="width:85px">
+              <col style="width:150px">
+              <col style="width:210px">
+              <col style="width:135px">
+              <col style="width:55px">
+              <col style="width:70px">
+              <col style="width:95px">
+              <col style="width:90px">
+              <col style="width:75px">
+              <col style="width:90px">
+              <col style="width:125px">
+              <col style="width:130px">
+            </colgroup>
+            <thead>
+              <tr>
+                <th class="sortable" data-sort="order_number">Order Number <span class="sort-arrow"></span></th>
+                <th class="sortable" data-sort="customer_name">Customer <span class="sort-arrow"></span></th>
+                <th>Shipping Address</th>
+                <th class="sortable" data-sort="iphone_model">Model <span class="sort-arrow"></span></th>
+                <th class="sortable" data-sort="model_year">Year <span class="sort-arrow"></span></th>
+                <th>Storage</th>
+                <th>Color</th>
+                <th>Condition</th>
+                <th class="sortable" data-sort="battery_health">Battery <span class="sort-arrow"></span></th>
+                <th class="sortable" data-sort="price">Price (RM) <span class="sort-arrow"></span></th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="orders-tbody">
+              <tr><td colspan="12" class="muted center">Loading Orders</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="pagination-bar">
+          <span id="pagination-summary" class="muted"></span>
+          <div class="pagination-controls">
+            <button id="page-prev" class="ghost-btn">Previous</button>
+            <span id="page-indicator" class="muted"></span>
+            <button id="page-next" class="ghost-btn">Next</button>
+          </div>
+        </div>
       </div>
-    </div>
+    </main>
+  </div>
 
-    <p id="save-toast" class="toast" hidden></p>
-
-    <div class="table-wrap">
-      <table id="orders-table">
-        <colgroup>
-          <col style="width:85px">
-          <col style="width:150px">
-          <col style="width:210px">
-          <col style="width:135px">
-          <col style="width:55px">
-          <col style="width:70px">
-          <col style="width:95px">
-          <col style="width:90px">
-          <col style="width:75px">
-          <col style="width:90px">
-          <col style="width:125px">
-          <col style="width:130px">
-        </colgroup>
-        <thead>
-          <tr>
-            <th class="sortable" data-sort="order_number">Order # <span class="sort-arrow"></span></th>
-            <th class="sortable" data-sort="customer_name">Customer <span class="sort-arrow"></span></th>
-            <th>Shipping address</th>
-            <th class="sortable" data-sort="iphone_model">Model <span class="sort-arrow"></span></th>
-            <th class="sortable" data-sort="model_year">Year <span class="sort-arrow"></span></th>
-            <th>Storage</th>
-            <th>Color</th>
-            <th>Condition</th>
-            <th class="sortable" data-sort="battery_health">Battery <span class="sort-arrow"></span></th>
-            <th class="sortable" data-sort="price">Price (RM) <span class="sort-arrow"></span></th>
-            <th>Status</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody id="orders-tbody">
-          <tr><td colspan="12" class="muted center">Loading orders…</td></tr>
-        </tbody>
-      </table>
-    </div>
-
-    <div class="pagination-bar">
-      <span id="pagination-summary" class="muted"></span>
-      <div class="pagination-controls">
-        <button id="page-prev" class="ghost-btn">← Prev</button>
-        <span id="page-indicator" class="muted"></span>
-        <button id="page-next" class="ghost-btn">Next →</button>
-      </div>
-    </div>
-  </main>
-
-  <!-- Add/Edit order modal -->
   <dialog id="order-dialog">
     <form id="order-form" method="dialog">
-      <h2 id="dialog-title">Add order</h2>
+      <h2 id="dialog-title">Add Order</h2>
       <input type="hidden" id="f-id" />
 
       <div class="form-grid">
-        <label>Order # <input id="f-order_number" required /></label>
-        <label>Customer name <input id="f-customer_name" required /></label>
-        <label>Customer email <input id="f-customer_email" type="email" required /></label>
-        <label class="span-2">Shipping address <input id="f-shipping_address" required /></label>
+        <label>Order Number <input id="f-order_number" required /></label>
+        <label>Customer Name <input id="f-customer_name" required /></label>
+        <label>Customer Email <input id="f-customer_email" type="email" required /></label>
+        <label class="span-2">Shipping Address <input id="f-shipping_address" required /></label>
         <label>Model
           <select id="f-iphone_model" required></select>
         </label>
@@ -130,11 +129,11 @@
         <label>Condition
           <select id="f-condition" required>
             <option value="new">New</option>
-            <option value="like_new">Like new</option>
+            <option value="like_new">Like New</option>
             <option value="used">Used</option>
           </select>
         </label>
-        <label>Battery health % <input id="f-battery_health" type="number" min="0" max="100" /></label>
+        <label>Battery Health % <input id="f-battery_health" type="number" min="0" max="100" /></label>
         <label>Price (RM) <input id="f-price" type="number" min="0" step="0.01" required /></label>
         <label>Status
           <select id="f-status" required>
@@ -149,41 +148,40 @@
       </div>
 
       <details class="estimator-box">
-        <summary>Estimate price &amp; battery from condition (like a trade-in check)</summary>
-        <p class="muted small">Answer a few questions — same idea as Apple's trade-in flow — and get a suggested price and battery health. You can still edit both manually after.</p>
+        <summary>Estimate Price and Battery</summary>
         <div class="form-grid">
-          <label>Screen condition
+          <label>Screen Condition
             <select id="est-screen">
-              <option value="flawless">No scratches</option>
-              <option value="minor_scratches">Minor scratches</option>
-              <option value="cracked">Cracked / chipped</option>
+              <option value="flawless">No Scratches</option>
+              <option value="minor_scratches">Minor Scratches</option>
+              <option value="cracked">Cracked or Chipped</option>
             </select>
           </label>
-          <label>Body condition
+          <label>Body Condition
             <select id="est-body">
-              <option value="flawless">No scratches</option>
-              <option value="minor_scratches">Minor scratches/dents</option>
-              <option value="dents_or_cracks">Dents or cracked back</option>
+              <option value="flawless">No Scratches</option>
+              <option value="minor_scratches">Minor Scratches or Dents</option>
+              <option value="dents_or_cracks">Dents or Cracked Back</option>
             </select>
           </label>
-          <label>Parts replaced
+          <label>Parts Replaced
             <select id="est-parts">
-              <option value="none">None (all original)</option>
-              <option value="screen">Screen replaced</option>
-              <option value="battery">Battery replaced</option>
-              <option value="back_glass">Back glass replaced</option>
-              <option value="multiple">Multiple parts replaced</option>
+              <option value="none">None</option>
+              <option value="screen">Screen Replaced</option>
+              <option value="battery">Battery Replaced</option>
+              <option value="back_glass">Back Glass Replaced</option>
+              <option value="multiple">Multiple Parts Replaced</option>
             </select>
           </label>
-          <label>Years in use
-            <input id="est-years" type="number" min="0" max="10" placeholder="auto from model" />
+          <label>Years In Use
+            <input id="est-years" type="number" min="0" max="10" placeholder="Auto from model" />
           </label>
-          <label class="checkbox-label"><input type="checkbox" id="est-faceid" checked /> Face/Touch ID works</label>
-          <label class="checkbox-label"><input type="checkbox" id="est-camera" checked /> Cameras work properly</label>
-          <label class="checkbox-label"><input type="checkbox" id="est-charging" checked /> Charging port works</label>
-          <label class="checkbox-label"><input type="checkbox" id="est-water" /> Water damage exposure</label>
+          <label class="checkbox-label"><input type="checkbox" id="est-faceid" checked /> Face ID or Touch ID Works</label>
+          <label class="checkbox-label"><input type="checkbox" id="est-camera" checked /> Cameras Work Properly</label>
+          <label class="checkbox-label"><input type="checkbox" id="est-charging" checked /> Charging Port Works</label>
+          <label class="checkbox-label"><input type="checkbox" id="est-water" /> Water Damage Exposure</label>
         </div>
-        <button type="button" id="run-estimate-btn" class="ghost-btn" style="margin-top:12px;">Calculate estimate</button>
+        <button type="button" id="run-estimate-btn" class="ghost-btn" style="margin-top:12px;">Calculate Estimate</button>
         <p id="estimate-result" class="estimate-result"></p>
       </details>
 
