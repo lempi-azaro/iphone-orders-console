@@ -4,8 +4,9 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; connect-src 'self' https://*.supabase.co; frame-src https://challenges.cloudflare.com; img-src 'self' data:;">
-<title>Sign in · Order Console</title>
+<title>Sign In · Order Console</title>
 <link rel="stylesheet" href="styles.css" />
+<script>document.documentElement.dataset.theme = localStorage.getItem("theme") || "light";</script>
 </head>
 <body class="auth-body">
   <main class="auth-card" role="main">
@@ -13,7 +14,7 @@
       <span class="brand-mark">◆</span>
       <span class="brand-name">Order Console</span>
     </div>
-    <h1>Sign in</h1>
+    <h1>Sign In</h1>
     <p class="muted">Staff access only. All activity is logged.</p>
 
     <form id="login-form" novalidate autocomplete="on">
@@ -24,13 +25,13 @@
       <input id="password" name="password" type="password" autocomplete="current-password" required minlength="8" />
 
       <!-- Bot protection widget renders here -->
-      <div class="cf-turnstile" data-sitekey="0x4AAAAAAEgpy2XJnTE_7wp4" data-callback="onTurnstileOk" style="margin: 14px 0;"></div>
+      <div class="cf-turnstile" data-sitekey="YOUR_TURNSTILE_SITE_KEY" data-callback="onTurnstileOk" style="margin: 14px 0;"></div>
 
-      <button type="submit" id="login-btn">Sign in</button>
+      <button type="submit" id="login-btn">Sign In</button>
       <p id="error-msg" class="error" role="alert" aria-live="polite"></p>
     </form>
 
-    <button id="magic-link-btn" class="ghost-btn">Email me a sign-in link instead</button>
+    <button id="magic-link-btn" class="ghost-btn">Email Me A Sign-In Link Instead</button>
     <p class="fineprint">Sessions expire automatically. Never share your password or a sign-in link.</p>
   </main>
 
