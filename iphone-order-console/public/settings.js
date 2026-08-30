@@ -31,6 +31,76 @@ document.getElementById("save-password-btn").addEventListener("click", async () 
   if (!error) document.getElementById("new-password").value = "";
 });
 
+// ---- Two-factor authentication (Supabase native TOTP) ----
+let pendingFactorId = null;
+const mfaStatusEl = document.getElementById("mfa-status");
+const mfaToggleBtn = document.getElementById("mfa-toggle-btn");
+const mfaVerifyBtn = document.getElementById("mfa-verify-btn");
+const mfaEnrollSection = document.getElementById("mfa-enroll-section");
+const mfaMsg = document.getElementById("mfa-msg");
+
+async function refreshMfaStatus() {
+  const { data, error } = await supabase.auth.mfa.listFactors();
+  if (error) { mfaStatusEl.textContent = "Unavailable"; return; }
+
+  const verified = data?.totp?.find((f) => f.status === "verified");
+  if (verified) {
+    mfaStatusEl.textContent = "Enabled";
+    mfaToggleBtn.textContent = "Disable Two-Factor Authentication";
+    mfaToggleBtn.dataset.mode = "disable";
+    mfaToggleBtn.dataset.factorId = verified.id;
+    mfaEnrollSection.hidden = true;
+    mfaVerifyBtn.hidden = true;
+  } else {
+    mfaStatusEl.textContent = "Not Enabled";
+    mfaToggleBtn.textContent = "Enable Two-Factor Authentication";
+    mfaToggleBtn.dataset.mode = "enable";
+  }
+}
+
+mfaToggleBtn.addEventListener("click", async () => {
+  mfaMsg.textContent = "";
+  if (mfaToggleBtn.dataset.mode === "disable") {
+    const { error } = await supabase.auth.mfa.unenroll({ factorId: mfaToggleBtn.dataset.factorId });
+    if (error) { mfaMsg.textContent = "Could not disable two-factor authentication."; return; }
+    await refreshMfaStatus();
+    return;
+  }
+
+  const { data, error } = await supabase.auth.mfa.enroll({ factorType: "totp" });
+  if (error) { mfaMsg.textContent = "Could not start enrollment."; return; }
+
+  pendingFactorId = data.id;
+  document.getElementById("mfa-qr").innerHTML = data.totp.qr_code;
+  mfaEnrollSection.hidden = false;
+  mfaVerifyBtn.hidden = false;
+  mfaMsg.textContent = "Scan the code with an authenticator app, then enter the 6-digit code.";
+});
+
+mfaVerifyBtn.addEventListener("click", async () => {
+  const code = document.getElementById("mfa-code").value.trim();
+  if (!code) { mfaMsg.textContent = "Enter the 6-digit code first."; return; }
+
+  const { data: challenge, error: challengeErr } = await supabase.auth.mfa.challenge({ factorId: pendingFactorId });
+  if (challengeErr) { mfaMsg.textContent = "Could not verify. Try again."; return; }
+
+  const { error } = await supabase.auth.mfa.verify({ factorId: pendingFactorId, challengeId: challenge.id, code });
+  if (error) { mfaMsg.textContent = "Invalid code. Try again."; return; }
+
+  mfaMsg.textContent = "Two-factor authentication enabled.";
+  await refreshMfaStatus();
+});
+
+await refreshMfaStatus();
+
+// ---- Appearance (theme) ----
+const themeSelect = document.getElementById("theme-select");
+themeSelect.value = localStorage.getItem("theme") || "light";
+themeSelect.addEventListener("change", () => {
+  document.documentElement.dataset.theme = themeSelect.value;
+  localStorage.setItem("theme", themeSelect.value);
+});
+
 // ---- Store settings ----
 async function loadSettings() {
   const { data } = await supabase.from("app_settings").select("*").eq("id", 1).maybeSingle();
