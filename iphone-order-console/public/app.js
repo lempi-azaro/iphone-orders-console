@@ -25,7 +25,7 @@ document.getElementById("logout-btn").addEventListener("click", async () => {
 // ---- State ----
 let orders = [];
 let sortKey = null;
-let sortDir = 1; // 1 = ascending, -1 = descending
+let sortDir = 1;
 let currentPage = 1;
 const PAGE_SIZE = 20;
 const tbody = document.getElementById("orders-tbody");
@@ -33,6 +33,10 @@ const countEl = document.getElementById("order-count");
 const toast = document.getElementById("save-toast");
 const searchInput = document.getElementById("search-input");
 const statusFilter = document.getElementById("status-filter");
+const modelFilter = document.getElementById("model-filter");
+const conditionFilter = document.getElementById("condition-filter");
+const unitStatusFilter = document.getElementById("unit-status-filter");
+const batteryFilter = document.getElementById("battery-filter");
 const pagePrevBtn = document.getElementById("page-prev");
 const pageNextBtn = document.getElementById("page-next");
 const pageIndicator = document.getElementById("page-indicator");
@@ -63,8 +67,6 @@ function showToast(msg, isError = false) {
   setTimeout(() => (toast.hidden = true), 2500);
 }
 
-// Escape any user-entered text before it goes into innerHTML — otherwise
-// a name/address field like `<img onerror=...>` is a stored XSS attack.
 function esc(str) {
   const d = document.createElement("div");
   d.textContent = str ?? "";
@@ -72,26 +74,28 @@ function esc(str) {
 }
 
 async function loadOrders() {
-  tbody.innerHTML = `<tr><td colspan="12" class="muted center">Loading Orders</td></tr>`;
+  tbody.innerHTML = `<tr><td colspan="13" class="muted center">Loading Orders</td></tr>`;
   const { data, error } = await supabase
     .from("orders")
     .select("*")
     .order("created_at", { ascending: false });
 
   if (error) {
-    tbody.innerHTML = `<tr><td colspan="12" class="muted center">Could not load orders.</td></tr>`;
-    console.error(error.message); // never log tokens/passwords — only safe error text
+    tbody.innerHTML = `<tr><td colspan="13" class="muted center">Could not load orders.</td></tr>`;
+    console.error(error.message);
     return;
   }
   orders = data;
   render();
 }
 
-function render() {
-  renderStats(orders);
-
+function getFiltered() {
   const q = searchInput.value.trim().toLowerCase();
   const statusQ = statusFilter.value;
+  const modelQ = modelFilter.value;
+  const conditionQ = conditionFilter.value;
+  const unitStatusQ = unitStatusFilter.value;
+  const batteryQ = batteryFilter.value;
 
   let filtered = orders.filter((o) => {
     const matchesQ =
@@ -100,7 +104,16 @@ function render() {
       o.customer_name.toLowerCase().includes(q) ||
       o.iphone_model.toLowerCase().includes(q);
     const matchesStatus = !statusQ || o.status === statusQ;
-    return matchesQ && matchesStatus;
+    const matchesModel = !modelQ || o.iphone_model.startsWith(modelQ);
+    const matchesCondition = !conditionQ || o.condition === conditionQ;
+    const matchesUnitStatus = !unitStatusQ || o.unit_status === unitStatusQ;
+    const matchesBattery =
+      !batteryQ ||
+      (o.battery_health != null &&
+        ((batteryQ === "above90" && o.battery_health > 90) ||
+          (batteryQ === "80to89" && o.battery_health >= 80 && o.battery_health <= 89) ||
+          (batteryQ === "below80" && o.battery_health < 80)));
+    return matchesQ && matchesStatus && matchesModel && matchesCondition && matchesUnitStatus && matchesBattery;
   });
 
   if (sortKey) {
@@ -114,6 +127,13 @@ function render() {
       return 0;
     });
   }
+
+  return filtered;
+}
+
+function render() {
+  renderStats(orders);
+  const filtered = getFiltered();
 
   countEl.textContent = filtered.length;
 
@@ -132,13 +152,13 @@ function render() {
 
   pageIndicator.textContent = `Page ${currentPage} of ${totalPages}`;
   paginationSummary.textContent = filtered.length === 0
-    ? "No orders"
-    : `Showing ${start + 1}–${Math.min(start + PAGE_SIZE, filtered.length)} of ${filtered.length}`;
+    ? "No Orders"
+    : `Showing ${start + 1} to ${Math.min(start + PAGE_SIZE, filtered.length)} of ${filtered.length}`;
   pagePrevBtn.disabled = currentPage <= 1;
   pageNextBtn.disabled = currentPage >= totalPages;
 
   if (pageItems.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="12" class="muted center">No orders match.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="13" class="muted center">No Orders Match.</td></tr>`;
     return;
   }
 
@@ -167,6 +187,13 @@ function render() {
         </select>
       </td>
       <td>
+        <select class="status-select unit-status-select status-${o.unit_status}" data-field="unit_status">
+          ${["available", "reserved", "sold", "under_repair"]
+            .map((s) => `<option value="${s}" ${s === o.unit_status ? "selected" : ""}>${titleCase(s)}</option>`)
+            .join("")}
+        </select>
+      </td>
+      <td>
         <div class="action-cell">
           <button class="action-btn edit row-edit">Edit</button>
           <button class="action-btn delete row-delete">Delete</button>
@@ -176,20 +203,23 @@ function render() {
     )
     .join("");
 
-  // Inline status change -> save immediately, refetch to confirm persistence
-  tbody.querySelectorAll(".status-select").forEach((sel) => {
+  tbody.querySelectorAll(".status-select[data-field='status']").forEach((sel) => {
     sel.addEventListener("change", async (e) => {
       const id = e.target.closest("tr").dataset.id;
-      const { error } = await supabase
-        .from("orders")
-        .update({ status: e.target.value })
-        .eq("id", id);
-      if (error) {
-        showToast("Could not save status change.", true);
-        return;
-      }
+      const { error } = await supabase.from("orders").update({ status: e.target.value }).eq("id", id);
+      if (error) { showToast("Could not save status change.", true); return; }
       showToast("Status updated.");
-      await loadOrders(); // re-pull from DB so a page refresh always matches this view
+      await loadOrders();
+    });
+  });
+
+  tbody.querySelectorAll(".status-select[data-field='unit_status']").forEach((sel) => {
+    sel.addEventListener("change", async (e) => {
+      const id = e.target.closest("tr").dataset.id;
+      const { error } = await supabase.from("orders").update({ unit_status: e.target.value }).eq("id", id);
+      if (error) { showToast("Could not save unit status change.", true); return; }
+      showToast("Unit status updated.");
+      await loadOrders();
     });
   });
 
@@ -205,10 +235,7 @@ function render() {
       const id = e.target.closest("tr").dataset.id;
       if (!confirm("Delete this order? This cannot be undone.")) return;
       const { error } = await supabase.from("orders").delete().eq("id", id);
-      if (error) {
-        showToast("Could not delete order.", true);
-        return;
-      }
+      if (error) { showToast("Could not delete order.", true); return; }
       showToast("Order deleted.");
       await loadOrders();
     });
@@ -216,7 +243,9 @@ function render() {
 }
 
 searchInput.addEventListener("input", () => { currentPage = 1; render(); });
-statusFilter.addEventListener("change", () => { currentPage = 1; render(); });
+[statusFilter, modelFilter, conditionFilter, unitStatusFilter, batteryFilter].forEach((el) => {
+  el.addEventListener("change", () => { currentPage = 1; render(); });
+});
 document.getElementById("refresh-btn").addEventListener("click", loadOrders);
 
 document.querySelectorAll("th.sortable").forEach((th) => {
@@ -232,16 +261,47 @@ document.querySelectorAll("th.sortable").forEach((th) => {
 pagePrevBtn.addEventListener("click", () => { currentPage -= 1; render(); });
 pageNextBtn.addEventListener("click", () => { currentPage += 1; render(); });
 
+// ---- CSV export (exports whatever the current filters show) ----
+document.getElementById("export-csv-btn").addEventListener("click", () => {
+  const rows = getFiltered();
+  const headers = [
+    "Order Number", "Customer Name", "Customer Email", "Shipping Address",
+    "Model", "Year", "Storage GB", "Color", "Condition", "Battery Health",
+    "Price RM", "Order Status", "Unit Status", "Created At",
+  ];
+  const csvEscape = (val) => {
+    const s = String(val ?? "");
+    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  const lines = [headers.join(",")];
+  rows.forEach((o) => {
+    lines.push([
+      o.order_number, o.customer_name, o.customer_email, o.shipping_address,
+      o.iphone_model, o.model_year, o.storage_gb, o.color, titleCase(o.condition),
+      o.battery_health ?? "", o.price, titleCase(o.status), titleCase(o.unit_status), o.created_at,
+    ].map(csvEscape).join(","));
+  });
+
+  const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `iphone-orders-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+});
+
 // ---- Add / Edit dialog ----
 const dialog = document.getElementById("order-dialog");
 const dialogTitle = document.getElementById("dialog-title");
 const orderForm = document.getElementById("order-form");
 const formError = document.getElementById("form-error");
+const orderNumberSuffix = document.getElementById("f-order_number_suffix");
 
 const fields = [
-  "order_number", "customer_name", "customer_email", "shipping_address",
+  "customer_name", "customer_email", "shipping_address",
   "iphone_model", "model_year", "storage_gb", "color", "condition",
-  "battery_health", "price", "status",
+  "battery_health", "price", "status", "unit_status",
 ];
 
 const modelSelect = document.getElementById("f-iphone_model");
@@ -251,7 +311,6 @@ const yearInput = document.getElementById("f-model_year");
 const conditionSelect = document.getElementById("f-condition");
 const batteryInput = document.getElementById("f-battery_health");
 
-// Populate the model dropdown once, grouped newest-first.
 modelSelect.innerHTML = [...IPHONE_MODELS]
   .reverse()
   .map((m) => `<option value="${m.name}">${m.name} (${m.year})</option>`)
@@ -284,15 +343,26 @@ conditionSelect.addEventListener("change", () => {
   batteryInput.value = isNew ? "" : batteryInput.value || 90;
 });
 
+function nextOrderSuffix() {
+  const numbers = orders
+    .map((o) => parseInt(o.order_number.replace("ORD-", ""), 10))
+    .filter((n) => !isNaN(n));
+  const next = (numbers.length ? Math.max(...numbers) : 1000) + 1;
+  return String(next).padStart(4, "0");
+}
+
 function openDialog(order = null) {
   formError.textContent = "";
   dialogTitle.textContent = order ? `Edit ${order.order_number}` : "Add Order";
   document.getElementById("f-id").value = order?.id ?? "";
+  orderNumberSuffix.value = order ? order.order_number.replace("ORD-", "") : nextOrderSuffix();
 
   fields.forEach((f) => {
-    if (["iphone_model", "storage_gb", "color", "model_year"].includes(f)) return; // handled below
+    if (["iphone_model", "storage_gb", "color", "model_year"].includes(f)) return;
     document.getElementById(`f-${f}`).value = order ? order[f] ?? "" : "";
   });
+
+  if (!order) document.getElementById("f-unit_status").value = "reserved";
 
   modelSelect.value = order?.iphone_model ?? IPHONE_MODELS[IPHONE_MODELS.length - 1].name;
   refreshStorageAndColor({ storage_gb: order?.storage_gb, color: order?.color });
@@ -344,8 +414,14 @@ orderForm.addEventListener("submit", async (e) => {
   e.preventDefault();
   formError.textContent = "";
 
+  const suffix = orderNumberSuffix.value.trim();
+  if (!/^\d{4}$/.test(suffix)) {
+    formError.textContent = "Order number must be exactly 4 digits.";
+    return;
+  }
+
   const id = document.getElementById("f-id").value;
-  const payload = {};
+  const payload = { order_number: `ORD-${suffix}` };
   fields.forEach((f) => {
     const el = document.getElementById(`f-${f}`);
     let v = el.value;
@@ -354,8 +430,6 @@ orderForm.addEventListener("submit", async (e) => {
     payload[f] = v;
   });
 
-  // Basic client-side sanity check (defense in depth — the real
-  // constraints live in the database via CHECK constraints).
   if (payload.condition === "new") payload.battery_health = null;
 
   const query = id
@@ -364,7 +438,7 @@ orderForm.addEventListener("submit", async (e) => {
 
   const { error } = await query;
   if (error) {
-    formError.textContent = "Could not save: " + (error.code === "23505" ? "order # already exists." : "check the fields and try again.");
+    formError.textContent = "Could not save: " + (error.code === "23505" ? "order number already exists." : "check the fields and try again.");
     return;
   }
 
@@ -373,5 +447,4 @@ orderForm.addEventListener("submit", async (e) => {
   await loadOrders();
 });
 
-// Initial load
 await loadOrders();
