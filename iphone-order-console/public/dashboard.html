@@ -20,6 +20,7 @@
       </nav>
       <div class="sidebar-footer">
         <span id="user-email" class="muted"></span>
+        <button id="theme-toggle-btn" class="ghost-btn">Switch To Dark Mode</button>
         <button id="logout-btn" class="ghost-btn">Sign Out</button>
       </div>
     </aside>
@@ -43,10 +44,14 @@
             <input id="search-input" type="search" placeholder="Search name, order number, model" />
             <select id="model-filter">
               <option value="">All Models</option>
+              <option value="iPhone 11">iPhone 11</option>
+              <option value="iPhone 12">iPhone 12</option>
               <option value="iPhone 13">iPhone 13</option>
               <option value="iPhone 14">iPhone 14</option>
               <option value="iPhone 15">iPhone 15</option>
               <option value="iPhone 16">iPhone 16</option>
+              <option value="iPhone 17">iPhone 17</option>
+              <option value="iPhone Air">iPhone Air</option>
             </select>
             <select id="condition-filter">
               <option value="">All Conditions</option>
@@ -237,6 +242,7 @@
     </form>
   </dialog>
 
+  <script type="module" src="theme.js"></script>
   <script type="module" src="config.js"></script>
   <script type="module" src="app.js"></script>
 </body>
