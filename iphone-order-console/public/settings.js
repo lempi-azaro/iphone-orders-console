@@ -93,14 +93,6 @@ mfaVerifyBtn.addEventListener("click", async () => {
 
 await refreshMfaStatus();
 
-// ---- Appearance (theme) ----
-const themeSelect = document.getElementById("theme-select");
-themeSelect.value = localStorage.getItem("theme") || "light";
-themeSelect.addEventListener("change", () => {
-  document.documentElement.dataset.theme = themeSelect.value;
-  localStorage.setItem("theme", themeSelect.value);
-});
-
 // ---- Store settings ----
 async function loadSettings() {
   const { data } = await supabase.from("app_settings").select("*").eq("id", 1).maybeSingle();
