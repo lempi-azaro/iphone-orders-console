@@ -14,8 +14,6 @@ const errorMsg = document.getElementById("error-msg");
 const loginBtn = document.getElementById("login-btn");
 const magicBtn = document.getElementById("magic-link-btn");
 
-// TEMPORARY: Turnstile bot-check disabled while domain/site-key is being
-// set up. Re-enable before sending this link to anyone — see README.
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
   errorMsg.textContent = "";
