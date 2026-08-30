@@ -24,7 +24,7 @@ form.addEventListener("submit", async (e) => {
   const password = document.getElementById("password").value;
 
   loginBtn.disabled = true;
-  loginBtn.textContent = "Signing in…";
+  loginBtn.textContent = "Signing In";
 
   const { error } = await supabase.auth.signInWithPassword({
     email,
@@ -36,7 +36,7 @@ form.addEventListener("submit", async (e) => {
     // exists or the password was wrong (prevents account enumeration).
     errorMsg.textContent = "Invalid email or password.";
     loginBtn.disabled = false;
-    loginBtn.textContent = "Sign in";
+    loginBtn.textContent = "Sign In";
     return;
   }
 
