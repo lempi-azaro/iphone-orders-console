@@ -39,6 +39,7 @@ const pageIndicator = document.getElementById("page-indicator");
 const paginationSummary = document.getElementById("pagination-summary");
 
 const money = (n) => Number(n).toLocaleString("en-MY", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const titleCase = (s) => s.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
 function renderStats(list) {
   const total = list.length;
@@ -71,7 +72,7 @@ function esc(str) {
 }
 
 async function loadOrders() {
-  tbody.innerHTML = `<tr><td colspan="12" class="muted center">Loading orders…</td></tr>`;
+  tbody.innerHTML = `<tr><td colspan="12" class="muted center">Loading Orders</td></tr>`;
   const { data, error } = await supabase
     .from("orders")
     .select("*")
@@ -155,20 +156,20 @@ function render() {
       <td>${esc(o.model_year)}</td>
       <td>${esc(storageLabel(o.storage_gb))}</td>
       <td>${esc(o.color)}</td>
-      <td>${esc(o.condition.replace("_", " "))}</td>
-      <td>${o.battery_health != null ? esc(o.battery_health) + "%" : "—"}</td>
+      <td>${esc(titleCase(o.condition))}</td>
+      <td>${o.battery_health != null ? esc(o.battery_health) + "%" : "N/A"}</td>
       <td>${money(o.price)}</td>
       <td>
         <select class="status-select status-${o.status}" data-field="status">
           ${["pending", "processing", "shipped", "delivered", "cancelled", "refunded"]
-            .map((s) => `<option value="${s}" ${s === o.status ? "selected" : ""}>${s}</option>`)
+            .map((s) => `<option value="${s}" ${s === o.status ? "selected" : ""}>${titleCase(s)}</option>`)
             .join("")}
         </select>
       </td>
       <td>
         <div class="action-cell">
-          <button class="action-btn edit row-edit">✎ Edit</button>
-          <button class="action-btn delete row-delete">🗑 Delete</button>
+          <button class="action-btn edit row-edit">Edit</button>
+          <button class="action-btn delete row-delete">Delete</button>
         </div>
       </td>
     </tr>`
@@ -285,7 +286,7 @@ conditionSelect.addEventListener("change", () => {
 
 function openDialog(order = null) {
   formError.textContent = "";
-  dialogTitle.textContent = order ? `Edit ${order.order_number}` : "Add order";
+  dialogTitle.textContent = order ? `Edit ${order.order_number}` : "Add Order";
   document.getElementById("f-id").value = order?.id ?? "";
 
   fields.forEach((f) => {
@@ -334,8 +335,9 @@ document.getElementById("run-estimate-btn").addEventListener("click", () => {
   const resultEl = document.getElementById("estimate-result");
   resultEl.classList.add("visible");
   resultEl.textContent =
-    `Suggested: RM ${result.estimatedPrice.toLocaleString()} · ~${result.estimatedBattery}% battery ` +
-    `(condition score ${result.conditionScore}/100, ~${result.ageYears} yr old). Fields have been filled in — adjust if needed.`;
+    `Suggested: RM ${result.estimatedPrice.toLocaleString()}, about ${result.estimatedBattery}% battery ` +
+    `(condition score ${result.conditionScore} of 100, about ${result.ageYears} years old). ` +
+    `Fields have been filled in. Adjust if needed.`;
 });
 
 orderForm.addEventListener("submit", async (e) => {
