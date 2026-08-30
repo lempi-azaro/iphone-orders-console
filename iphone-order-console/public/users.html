@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; connect-src 'self' https://*.supabase.co; img-src 'self' data:;">
+<title>Users · Order Console</title>
+<link rel="stylesheet" href="styles.css" />
+<script>document.documentElement.dataset.theme = localStorage.getItem("theme") || "light";</script>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="sidebar-brand"><span class="brand-mark">◆</span><span>Order Console</span></div>
+      <nav class="sidebar-nav">
+        <a href="home.html">Home</a>
+        <a href="dashboard.html">iPhone Orders</a>
+        <a href="users.html" class="active">Users</a>
+        <a href="settings.html">Settings</a>
+      </nav>
+      <div class="sidebar-footer">
+        <span id="user-email" class="muted"></span>
+        <button id="logout-btn" class="ghost-btn">Sign Out</button>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <div class="dashboard">
+        <div class="dashboard-head"><div><h1>Users</h1></div></div>
+
+        <div class="charts-row" style="align-items: start;">
+          <div class="chart-card">
+            <h3>Admins</h3>
+            <div id="admin-list"><p class="muted">Loading</p></div>
+          </div>
+          <div class="chart-card">
+            <h3>Staff</h3>
+            <div id="staff-list"><p class="muted">Loading</p></div>
+          </div>
+        </div>
+
+        <div class="settings-card" id="add-user-card" hidden style="max-width: 100%;">
+          <h2>Add User</h2>
+          <div class="form-grid">
+            <label>Full Name <input id="new-user-name" required /></label>
+            <label>Email <input id="new-user-email" type="email" required /></label>
+            <label>Password <input id="new-user-password" type="password" minlength="8" required /></label>
+            <label>Role
+              <select id="new-user-role">
+                <option value="staff">Staff</option>
+                <option value="admin">Admin</option>
+              </select>
+            </label>
+          </div>
+          <div class="save-row">
+            <button id="add-user-btn" class="primary-btn">Add User</button>
+            <span id="add-user-msg" class="muted"></span>
+          </div>
+        </div>
+
+        <div class="low-stock-card">
+          <h3 style="margin: 14px 18px 10px;">Recent Activity</h3>
+          <div id="activity-list"><p class="muted" style="padding: 0 18px 14px;">Loading</p></div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script type="module" src="config.js"></script>
+  <script type="module" src="users.js"></script>
+</body>
+</html>
