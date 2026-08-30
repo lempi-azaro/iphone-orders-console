@@ -17,13 +17,16 @@ document.getElementById("logout-btn").addEventListener("click", async () => {
   window.location.href = "index.html";
 });
 
+Chart.register(ChartDataLabels);
+
 const money = (n) => Number(n).toLocaleString("en-MY", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const titleCase = (s) => s.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
 const ACCENT = "#2f5d50";
 const PALETTE = ["#2f5d50", "#8a5a13", "#2b5aa3", "#276b3a", "#a3392b", "#5a3e9e"];
 
 async function loadDashboard() {
-  const [{ data: orders, error: ordersErr }, { data: inventory, error: invErr }, { data: settingsRows }] = await Promise.all([
+  const [{ data: orders, error: ordersErr }, { data: inventory, error: invErr }, { data: settingsRow }] = await Promise.all([
     supabase.from("orders").select("status, price, category"),
     supabase.from("inventory").select("*").order("quantity", { ascending: true }),
     supabase.from("app_settings").select("*").eq("id", 1).maybeSingle(),
@@ -34,8 +37,7 @@ async function loadDashboard() {
     return;
   }
 
-  const threshold = settingsRows?.low_stock_threshold ?? 5;
-  if (settingsRows?.store_name) document.getElementById("store-title").textContent = settingsRows.store_name;
+  if (settingsRow?.store_name) document.getElementById("store-title").textContent = settingsRow.store_name;
 
   // ---- Stat cards ----
   const total = orders.length;
@@ -50,20 +52,33 @@ async function loadDashboard() {
   document.getElementById("stat-refunded").textContent = refunded;
   document.getElementById("stat-lowstock").textContent = lowStockItems.length;
 
-  // ---- Orders by status (donut) ----
+  // ---- Orders by status (donut, percentage always shown on the slice) ----
   const statuses = ["pending", "processing", "shipped", "delivered", "cancelled", "refunded"];
   const statusCounts = statuses.map((s) => orders.filter((o) => o.status === s).length);
 
   new Chart(document.getElementById("status-chart"), {
     type: "doughnut",
     data: {
-      labels: statuses.map((s) => s[0].toUpperCase() + s.slice(1)),
+      labels: statuses.map(titleCase),
       datasets: [{ data: statusCounts, backgroundColor: PALETTE, borderWidth: 0 }],
     },
-    options: { plugins: { legend: { position: "right", labels: { boxWidth: 12, font: { size: 12 } } } } },
+    options: {
+      plugins: {
+        legend: { position: "right", labels: { boxWidth: 12, font: { size: 12 } } },
+        datalabels: {
+          color: "#fff",
+          font: { weight: "700", size: 12 },
+          formatter: (value, ctx) => {
+            if (!value) return null;
+            const total = ctx.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
+            return total ? Math.round((value / total) * 100) + "%" : null;
+          },
+        },
+      },
+    },
   });
 
-  // ---- Orders by category (bar) ----
+  // ---- Orders by category (bar, count always shown above the bar) ----
   const categories = ["Standard", "Pro", "Pro Max"];
   const categoryCounts = categories.map((c) => orders.filter((o) => o.category === c).length);
 
@@ -74,8 +89,15 @@ async function loadDashboard() {
       datasets: [{ data: categoryCounts, backgroundColor: ACCENT, borderRadius: 6, maxBarThickness: 60 }],
     },
     options: {
-      plugins: { legend: { display: false } },
+      plugins: {
+        legend: { display: false },
+        datalabels: {
+          anchor: "end", align: "top", color: "#2f5d50", font: { weight: "700", size: 12 },
+          formatter: (value) => (value > 0 ? value : null),
+        },
+      },
       scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
+      layout: { padding: { top: 18 } },
     },
   });
 
@@ -89,8 +111,8 @@ async function loadDashboard() {
         const critical = i.quantity <= Math.floor(i.reorder_threshold / 2);
         return `
         <div class="low-stock-row">
-          <span>${esc(i.iphone_model)} · ${i.storage_gb >= 1024 ? "1TB" : i.storage_gb + "GB"} · ${esc(i.color)} · ${esc(i.condition.replace("_", " "))}</span>
-          <span class="qty-badge ${critical ? "critical" : ""}">${i.quantity} left</span>
+          <span>${esc(i.iphone_model)}, ${i.storage_gb >= 1024 ? "1TB" : i.storage_gb + "GB"}, ${esc(i.color)}, ${esc(titleCase(i.condition))}</span>
+          <span class="qty-badge ${critical ? "critical" : ""}">${i.quantity} Left</span>
         </div>`;
       })
       .join("");
