@@ -15,6 +15,7 @@
       <nav class="sidebar-nav">
         <a href="home.html" class="active">Home</a>
         <a href="dashboard.html">iPhone Orders</a>
+        <a href="users.html">Users</a>
         <a href="settings.html">Settings</a>
       </nav>
       <div class="sidebar-footer">
@@ -27,16 +28,17 @@
       <div class="dashboard">
         <div class="dashboard-head">
           <div>
-            <h1 id="store-title">Overview</h1>
+            <h1 id="greeting">Welcome Back</h1>
+            <p class="muted" id="store-title">Overview</p>
           </div>
         </div>
 
         <div class="stats-row">
           <div class="stat-card"><span class="stat-num" id="stat-total">0</span><span class="stat-label">Total Orders</span></div>
-          <div class="stat-card"><span class="stat-num" id="stat-revenue">0</span><span class="stat-label">Total Value (RM)</span></div>
-          <div class="stat-card stat-pending"><span class="stat-num" id="stat-pending">0</span><span class="stat-label">Pending</span></div>
+          <div class="stat-card"><span class="stat-num" id="stat-revenue">0</span><span class="stat-label">Total Order Value (RM)</span></div>
+          <div class="stat-card"><span class="stat-num" id="stat-inventory-value">0</span><span class="stat-label">Inventory Value (RM)</span></div>
           <div class="stat-card"><span class="stat-num" id="stat-refunded">0</span><span class="stat-label">Refunded</span></div>
-          <div class="stat-card stat-pending"><span class="stat-num" id="stat-lowstock">0</span><span class="stat-label">Low Stock Items</span></div>
+          <div class="stat-card stat-pending"><span class="stat-num" id="stat-lowstock">0</span><span class="stat-label">Active Low Stock Alerts</span></div>
         </div>
 
         <div class="charts-row">
@@ -45,18 +47,62 @@
             <canvas id="status-chart"></canvas>
           </div>
           <div class="chart-card">
-            <h3>Orders By Category</h3>
+            <h3>Orders By Model</h3>
             <canvas id="category-chart"></canvas>
           </div>
         </div>
 
+        <div class="chart-card" style="margin-bottom: 20px;">
+          <h3>Orders Over Time (Last 8 Weeks)</h3>
+          <canvas id="trend-chart"></canvas>
+        </div>
+
         <div class="low-stock-card">
-          <h3>Low Stock Inventory</h3>
+          <div class="low-stock-header">
+            <h3>Low Stock Inventory</h3>
+            <button id="add-inventory-btn" class="primary-btn small-btn">Add Inventory Item</button>
+          </div>
           <div id="low-stock-list"><p class="muted" style="padding: 0 18px 14px;">Loading</p></div>
         </div>
       </div>
     </main>
   </div>
+
+  <dialog id="inventory-dialog">
+    <form id="inventory-form" method="dialog">
+      <h2 id="inventory-dialog-title">Add Inventory Item</h2>
+      <input type="hidden" id="inv-id" />
+      <div class="form-grid">
+        <label>Model
+          <select id="inv-model" required></select>
+        </label>
+        <label>Storage
+          <select id="inv-storage" required></select>
+        </label>
+        <label>Color
+          <select id="inv-color" required></select>
+        </label>
+        <label>Condition
+          <select id="inv-condition" required>
+            <option value="new">New</option>
+            <option value="like_new">Like New</option>
+            <option value="used">Used</option>
+          </select>
+        </label>
+        <label>Quantity <input id="inv-quantity" type="number" min="0" required /></label>
+        <label>Reorder Point <input id="inv-reorder" type="number" min="0" required /></label>
+        <label>Unit Price (RM) <input id="inv-price" type="number" min="0" step="0.01" /></label>
+        <label>Supplier (Optional)
+          <select id="inv-supplier"><option value="">None</option></select>
+        </label>
+      </div>
+      <p id="inventory-form-error" class="error" role="alert"></p>
+      <div class="dialog-actions">
+        <button type="button" id="inventory-cancel-btn" class="ghost-btn">Cancel</button>
+        <button type="submit" class="primary-btn">Save</button>
+      </div>
+    </form>
+  </dialog>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
