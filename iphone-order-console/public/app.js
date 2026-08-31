@@ -454,3 +454,12 @@ orderForm.addEventListener("submit", async (e) => {
 });
 
 await loadOrders();
+
+async function updateAlertsBadge() {
+  const { data } = await supabase.from("inventory").select("quantity, reorder_threshold, low_stock_acknowledged");
+  const count = (data ?? []).filter((i) => i.quantity <= i.reorder_threshold && !i.low_stock_acknowledged).length;
+  const badge = document.getElementById("alerts-badge");
+  if (!badge) return;
+  if (count > 0) { badge.textContent = count; badge.hidden = false; } else { badge.hidden = true; }
+}
+updateAlertsBadge();
