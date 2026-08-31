@@ -20,9 +20,7 @@ document.getElementById("logout-btn").addEventListener("click", async () => {
 
 Chart.register(ChartDataLabels);
 
-// Placeholder display name until user profiles are wired up.
-const DISPLAY_NAME = "Dal";
-document.getElementById("greeting").textContent = `Welcome Back, ${DISPLAY_NAME}`;
+// Greeting is set further down once we know the user's role.
 
 const money = (n) => Number(n).toLocaleString("en-MY", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const titleCase = (s) => s.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
@@ -54,6 +52,7 @@ async function loadDashboard() {
 
   const { data: myStaffRow } = await supabase.from("staff").select("role").eq("id", session.user.id).maybeSingle();
   const isAdmin = myStaffRow?.role === "admin";
+  document.getElementById("greeting").textContent = `Welcome Back, ${isAdmin ? "Manager" : "Staff"}`;
   document.getElementById("add-inventory-btn").hidden = !isAdmin;
 
   // ---- Stat cards ----
@@ -276,3 +275,12 @@ invForm.addEventListener("submit", async (e) => {
 });
 
 await loadDashboard();
+
+async function updateAlertsBadge() {
+  const { data } = await supabase.from("inventory").select("quantity, reorder_threshold, low_stock_acknowledged");
+  const count = (data ?? []).filter((i) => i.quantity <= i.reorder_threshold && !i.low_stock_acknowledged).length;
+  const badge = document.getElementById("alerts-badge");
+  if (!badge) return;
+  if (count > 0) { badge.textContent = count; badge.hidden = false; } else { badge.hidden = true; }
+}
+updateAlertsBadge();
