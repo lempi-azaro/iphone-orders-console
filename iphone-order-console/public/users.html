@@ -6,15 +6,10 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; connect-src 'self' https://*.supabase.co; img-src 'self' data:;">
 <title>Users · Order Console</title>
 <link rel="stylesheet" href="styles.css" />
-<script>
-  document.documentElement.dataset.theme = localStorage.getItem("theme") || "light";
-  if (localStorage.getItem("sidebarCollapsed") === "true") document.documentElement.classList.add("sidebar-collapsed");
-</script>
+<script type="module" src="apply-prefs.js"></script>
 </head>
 <body>
-  <button id="sidebar-toggle-btn" class="sidebar-toggle-btn" title="Toggle Sidebar" aria-label="Toggle Sidebar">
-    <span></span><span></span><span></span>
-  </button>
+  <button id="sidebar-toggle-btn" class="sidebar-toggle-btn" title="Toggle Sidebar" aria-label="Toggle Sidebar"><span id="sidebar-toggle-icon">‹</span></button>
   <button id="theme-toggle-btn" class="theme-toggle-fixed" title="Toggle Dark Mode" aria-label="Toggle Dark Mode">◐</button>
   <div class="app-shell">
     <aside class="sidebar">
@@ -22,6 +17,7 @@
       <nav class="sidebar-nav">
         <a href="home.html">Home</a>
         <a href="dashboard.html">iPhone Orders</a>
+        <a href="alerts.html">Alerts <span class="nav-badge" id="alerts-badge" hidden>0</span></a>
         <a href="users.html" class="active">Users</a>
         <a href="settings.html">Settings</a>
       </nav>
@@ -59,17 +55,18 @@
           <div class="chart-card" id="add-user-card" hidden>
             <h3>Add A User</h3>
             <p class="muted">They Can Sign In Immediately.</p>
-            <label>Name <input id="new-user-name" required /></label>
-            <label>Email <input id="new-user-email" type="email" required /></label>
-            <label>Password <input id="new-user-password" type="password" minlength="8" required /></label>
-            <p class="muted small-note">At Least 8 Characters.</p>
-            <label>Role
-              <select id="new-user-role">
-                <option value="staff">Staff</option>
-                <option value="admin">Admin</option>
-              </select>
-            </label>
-            <p class="muted small-note">Staff Can Record Movements. Admins Also Manage Products And Users.</p>
+            <div class="form-grid">
+              <label>Name <input id="new-user-name" required /></label>
+              <label>Email <input id="new-user-email" type="email" required /></label>
+              <label>Password <input id="new-user-password" type="password" minlength="8" required /></label>
+              <label>Role
+                <select id="new-user-role">
+                  <option value="staff">Staff</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </label>
+            </div>
+            <p class="muted small-note">Password Must Be At Least 8 Characters. Staff Can Record Movements, Admins Also Manage Products And Users.</p>
             <div class="save-row">
               <button id="add-user-btn" class="primary-btn" style="width: 100%;">Create User</button>
             </div>
