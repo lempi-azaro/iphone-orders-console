@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; connect-src 'self' https://*.supabase.co; img-src 'self' data:;">
+<title>Alerts · Order Console</title>
+<link rel="stylesheet" href="styles.css" />
+<script type="module" src="apply-prefs.js"></script>
+</head>
+<body>
+  <button id="sidebar-toggle-btn" class="sidebar-toggle-btn" title="Toggle Sidebar" aria-label="Toggle Sidebar"><span id="sidebar-toggle-icon">‹</span></button>
+  <button id="theme-toggle-btn" class="theme-toggle-fixed" title="Toggle Dark Mode" aria-label="Toggle Dark Mode">◐</button>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="sidebar-brand"><span class="brand-mark">◆</span><span id="brand-name-text">Order Console</span></div>
+      <nav class="sidebar-nav">
+        <a href="home.html">Home</a>
+        <a href="dashboard.html">iPhone Orders</a>
+        <a href="alerts.html" class="active">Alerts <span class="nav-badge" id="alerts-badge" hidden>0</span></a>
+        <a href="users.html">Users</a>
+        <a href="settings.html">Settings</a>
+      </nav>
+      <div class="sidebar-footer">
+        <span id="user-email" class="muted"></span>
+        <button id="logout-btn" class="ghost-btn">Sign Out</button>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <div class="dashboard">
+        <div class="dashboard-head">
+          <div>
+            <h1>Low Stock Alerts</h1>
+            <p class="muted">Raised When Stock Crosses A Reorder Point, And Cleared Automatically When It Recovers.</p>
+          </div>
+          <button id="ack-all-btn" class="primary-btn" hidden>Acknowledge All</button>
+        </div>
+
+        <div class="low-stock-card">
+          <div class="low-stock-header">
+            <div>
+              <h3>Open</h3>
+              <p class="muted" id="open-summary" style="margin: 0 18px 10px;">Loading</p>
+            </div>
+          </div>
+          <div id="open-list"><p class="muted" style="padding: 0 18px 14px;">Loading</p></div>
+        </div>
+
+        <div class="low-stock-card">
+          <div class="low-stock-header">
+            <div>
+              <h3>Recently Resolved</h3>
+              <p class="muted" style="margin: 0 18px 10px;">Stock Recovered Above The Reorder Point.</p>
+            </div>
+          </div>
+          <div id="resolved-list"><p class="muted" style="padding: 0 18px 14px;">Loading</p></div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script type="module" src="theme.js"></script>
+  <script type="module" src="config.js"></script>
+  <script type="module" src="alerts.js"></script>
+</body>
+</html>
