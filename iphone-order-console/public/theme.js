@@ -1,10 +1,15 @@
-// Shared across every page. The inline <script> in each page's <head>
-// already applies both saved preferences before paint; this module just
-// wires up the two toggle buttons so they behave the same way on every
-// page, not only on whichever page you clicked them from.
+// Shared across every page. apply-prefs.js already applied both saved
+// preferences before this runs; this module wires up the two toggle
+// buttons and keeps the sidebar chevron pointed the right direction.
 
 const themeBtn = document.getElementById("theme-toggle-btn");
 const sidebarBtn = document.getElementById("sidebar-toggle-btn");
+const sidebarIcon = document.getElementById("sidebar-toggle-icon");
+
+function updateSidebarIcon() {
+  if (!sidebarIcon) return;
+  sidebarIcon.textContent = document.documentElement.classList.contains("sidebar-collapsed") ? "›" : "‹";
+}
 
 themeBtn?.addEventListener("click", () => {
   const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
@@ -15,4 +20,7 @@ themeBtn?.addEventListener("click", () => {
 sidebarBtn?.addEventListener("click", () => {
   const collapsed = document.documentElement.classList.toggle("sidebar-collapsed");
   localStorage.setItem("sidebarCollapsed", collapsed ? "true" : "false");
+  updateSidebarIcon();
 });
+
+updateSidebarIcon();
