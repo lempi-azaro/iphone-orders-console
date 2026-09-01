@@ -1,9 +1,6 @@
 // Real-world iPhone model → year → storage options → color options →
 // approximate Malaysia launch price (base storage, RM) → per-storage-step
 // price increment → product line category (used for reporting/charts).
-//
-// Prices are approximate reference points for the depreciation estimator
-// below — not live market data. Treat them as ballpark, not a valuation.
 export const IPHONE_MODELS = [
   { name: "iPhone 11", year: 2019, storage: [64, 128, 256], basePrice: 3099, storageStep: 180, category: "Standard",
     colors: ["Black", "Green", "Yellow", "Purple", "(PRODUCT)RED", "White"] },
@@ -77,33 +74,25 @@ export function storageLabel(gb) {
   return `${gb}GB`;
 }
 
-// ---- Estimator ----
-// Transparent, rule-based depreciation + condition scoring. This is
-// deliberately NOT a black-box AI call: every input maps to a documented
-// weight below, which is safer (no API key exposed in a public frontend)
-// and more auditable for a resale pricing tool than an opaque model.
 export function estimatePriceAndBattery(model, storageGb, answers) {
   const {
-    screenCondition = "flawless",   // flawless | minor_scratches | cracked
-    bodyCondition = "flawless",     // flawless | minor_scratches | dents_or_cracks
+    screenCondition = "flawless",
+    bodyCondition = "flawless",
     faceIdWorks = true,
     cameraWorks = true,
     chargingPortWorks = true,
-    partsReplaced = "none",         // none | screen | battery | back_glass | multiple
+    partsReplaced = "none",
     waterDamage = false,
-    yearsUsed = null,               // if null, derived from model year
+    yearsUsed = null,
   } = answers;
 
   const currentYear = new Date().getFullYear();
   const age = yearsUsed ?? Math.max(0, currentYear - model.year);
 
-  // --- Battery health estimate ---
-  // Rough real-world average degradation: ~5–7%/year of daily use.
   let battery = Math.round(100 - age * 6);
   if (partsReplaced === "battery" || partsReplaced === "multiple") battery = 97;
   battery = Math.max(60, Math.min(100, battery));
 
-  // --- Condition score out of 100 ---
   let score = 100;
   if (screenCondition === "minor_scratches") score -= 8;
   if (screenCondition === "cracked") score -= 35;
@@ -112,34 +101,87 @@ export function estimatePriceAndBattery(model, storageGb, answers) {
   if (!faceIdWorks) score -= 25;
   if (!cameraWorks) score -= 20;
   if (!chargingPortWorks) score -= 15;
-  if (partsReplaced === "screen") score -= 10; // non-genuine part risk
+  if (partsReplaced === "screen") score -= 10;
   if (partsReplaced === "back_glass") score -= 5;
   if (partsReplaced === "multiple") score -= 15;
   if (waterDamage) score -= 40;
   score = Math.max(15, Math.min(100, score));
 
-  // --- Price estimate ---
   const storageIndex = model.storage.indexOf(Number(storageGb));
   const basePrice = model.basePrice + Math.max(0, storageIndex) * model.storageStep;
-  const depreciation = Math.max(0.28, 1 - age * 0.14); // floor at 28% of launch price
+  const depreciation = Math.max(0.28, 1 - age * 0.14);
   const conditionMultiplier = score / 100;
   const price = Math.round((basePrice * depreciation * conditionMultiplier) / 10) * 10;
 
   return { estimatedPrice: price, estimatedBattery: battery, conditionScore: score, ageYears: age };
-
-// Groups models into a main iPhone series for cleaner selectors.
-// iPhone Air is grouped with the iPhone 17 generation in the UI.
-export function modelSeries(modelName) {
-  if (modelName === "iPhone Air") return "iPhone 17";
-
-  const match = modelName.match(/^iPhone (11|12|13|14|15|16|17)/);
-  return match ? `iPhone ${match[1]}` : modelName;
 }
 
-export function modelsForSeries(series) {
-  return IPHONE_MODELS.filter((model) => modelSeries(model.name) === series);
+// ---- Data Persistence & Helpers for 100 Orders ----
+export function getModelSeriesList() {
+  return ["iPhone 11", "iPhone 12", "iPhone 13", "iPhone 14", "iPhone 15", "iPhone 16", "iPhone 17"];
 }
 
-export const IPHONE_SERIES = [...new Set(IPHONE_MODELS.map((model) => modelSeries(model.name)))];
-  
+export function getVariantsForSeries(series) {
+  if (!series) return [];
+  if (series === "iPhone 17") {
+    return IPHONE_MODELS.filter(m => m.name.startsWith("iPhone 17") || m.name === "iPhone Air");
+  }
+  return IPHONE_MODELS.filter(m => m.name.startsWith(series));
+}
+
+export function generate100Orders() {
+  const conditions = ['New', 'Like New', 'Used - Excellent', 'Used - Good'];
+  const statuses = ['Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled'];
+  const addresses = [
+    'Jalan Bukit Bintang, Kuala Lumpur', 'Georgetown, Penang', 'JB Sentral, Johor Bahru',
+    'Kota Kinabalu, Sabah', 'Kuching, Sarawak', 'Ipoh, Perak', 'Melaka City, Melaka'
+  ];
+
+  const orders = [];
+  for (let i = 1; i <= 100; i++) {
+    const modelObj = IPHONE_MODELS[(i - 1) % IPHONE_MODELS.length];
+    const storageVal = modelObj.storage[(i - 1) % modelObj.storage.length];
+    const colorVal = modelObj.colors[(i - 1) % modelObj.colors.length];
+    const condition = conditions[i % conditions.length];
+    const battery = condition === 'New' ? '100%' : `${80 + (i % 20)}%`;
+
+    orders.push({
+      id: `ORD-${1000 + i}`,
+      year: modelObj.year,
+      modelName: modelObj.name,
+      storage: storageVal,
+      color: colorVal,
+      condition,
+      batteryHealth: battery,
+      price: modelObj.basePrice,
+      status: statuses[i % statuses.length],
+      address: `${i * 12} ${addresses[i % addresses.length]}`
+    });
+  }
+  return orders;
+}
+
+export function loadSavedOrders() {
+  const saved = localStorage.getItem('iphone_orders_app_data');
+  if (saved) {
+    try { return JSON.parse(saved); } catch (e) { console.error(e); }
+  }
+  const initial = generate100Orders();
+  saveOrders(initial);
+  return initial;
+}
+
+export function saveOrders(orders) {
+  localStorage.setItem('iphone_orders_app_data', JSON.stringify(orders));
+}
+
+// Expose globally for browser non-module script tag compatibility
+if (typeof window !== 'undefined') {
+  window.IPHONE_MODELS = IPHONE_MODELS;
+  window.findModel = findModel;
+  window.storageLabel = storageLabel;
+  window.getModelSeriesList = getModelSeriesList;
+  window.getVariantsForSeries = getVariantsForSeries;
+  window.loadSavedOrders = loadSavedOrders;
+  window.saveOrders = saveOrders;
 }
