@@ -1,6 +1,14 @@
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
-import { IPHONE_MODELS, findModel, storageLabel, estimatePriceAndBattery } from "./iphone-data.js";
+import {
+  IPHONE_MODELS,
+  IPHONE_SERIES,
+  findModel,
+  modelSeries,
+  modelsForSeries,
+  storageLabel,
+  estimatePriceAndBattery,
+} from "./iphone-data.js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: { persistSession: true, autoRefreshToken: true },
@@ -40,6 +48,7 @@ const toast = document.getElementById("save-toast");
 const searchInput = document.getElementById("search-input");
 const statusFilter = document.getElementById("status-filter");
 const modelFilter = document.getElementById("model-filter");
+const variantFilter = document.getElementById("variant-filter");
 const conditionFilter = document.getElementById("condition-filter");
 const storageFilter = document.getElementById("storage-filter");
 const colorFilter = document.getElementById("color-filter");
@@ -48,11 +57,49 @@ const batteryFilter = document.getElementById("battery-filter");
 
 // Populate Color and Storage filters from every value that actually
 // appears across the iPhone lineup, deduplicated.
-const allStorages = [...new Set(IPHONE_MODELS.flatMap((m) => m.storage))].sort((a, b) => a - b);
-storageFilter.innerHTML += allStorages.map((gb) => `<option value="${gb}">${storageLabel(gb)}</option>`).join("");
+function setSelectOptions(select, placeholder, values, labelForValue = (value) => value) {
+  const currentValue = select.value;
 
-const allColors = [...new Set(IPHONE_MODELS.flatMap((m) => m.colors))].sort();
-colorFilter.innerHTML += allColors.map((c) => `<option value="${c}">${c}</option>`).join("");
+  select.innerHTML =
+    `<option value="">${placeholder}</option>` +
+    values.map((value) => `<option value="${value}">${labelForValue(value)}</option>`).join("");
+
+  // Keep the existing selection only if it is still valid.
+  if (values.includes(currentValue)) select.value = currentValue;
+}
+
+function refreshDependentFilters() {
+  const selectedSeries = modelFilter.value;
+  const modelsInSeries = selectedSeries
+    ? modelsForSeries(selectedSeries)
+    : IPHONE_MODELS;
+
+  // The second selector only shows models belonging to the chosen series.
+  setSelectOptions(
+    variantFilter,
+    "All Variants",
+    modelsInSeries.map((model) => model.name),
+  );
+  variantFilter.disabled = !selectedSeries;
+
+  const selectedVariant = variantFilter.value;
+  const validModels = selectedVariant
+    ? modelsInSeries.filter((model) => model.name === selectedVariant)
+    : modelsInSeries;
+
+  const validStorages = [...new Set(validModels.flatMap((model) => model.storage))]
+    .sort((a, b) => a - b);
+
+  const validColors = [...new Set(validModels.flatMap((model) => model.colors))]
+    .sort();
+
+  setSelectOptions(storageFilter, "All Storage", validStorages, storageLabel);
+  setSelectOptions(colorFilter, "All Colors", validColors);
+}
+
+// Populate the main series selector once.
+setSelectOptions(modelFilter, "All iPhone Series", IPHONE_SERIES);
+refreshDependentFilters();
 const pagePrevBtn = document.getElementById("page-prev");
 const pageNextBtn = document.getElementById("page-next");
 const pageIndicator = document.getElementById("page-indicator");
