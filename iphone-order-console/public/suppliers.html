@@ -1,1 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Supplier Management</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="apply-prefs.js"></script>
+</head>
+<body>
+  <div class="app-container">
+    <aside class="sidebar">
+      <div class="sidebar-nav">
+        <h2>Console</h2>
+        <a href="home.html">Orders & Inventory</a>
+        <a href="users.html">Users</a>
+        <a href="suppliers.html" class="active">Suppliers</a>
+        <a href="settings.html">Settings</a>
+      </div>
+      <div class="sidebar-footer">
+        <button id="signOutBtn" class="btn-signout">Sign Out</button>
+      </div>
+    </aside>
 
+    <main class="main-content">
+      <header class="top-header">
+        <h1>Supplier Management</h1>
+        <button id="themeToggle" class="theme-toggle-btn">Toggle Dark Mode</button>
+      </header>
+
+      <section class="card-section">
+        <h3 id="formTitle">Add Supplier</h3>
+        <form id="supplierForm">
+          <input type="hidden" id="supplierId">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="supplierName">Supplier Name</label>
+              <input type="text" id="supplierName" placeholder="e.g. Apex Wholesales" required>
+            </div>
+            <div class="form-group">
+              <label for="contactPerson">Contact Person</label>
+              <input type="text" id="contactPerson" placeholder="e.g. Jane Doe" required>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="supplierEmail">Email Address</label>
+              <input type="email" id="supplierEmail" placeholder="jane@apex.com" required>
+            </div>
+            <div class="form-group">
+              <label for="supplierPhone">Phone Number</label>
+              <input type="text" id="supplierPhone" placeholder="+60 12-345 6789" required>
+            </div>
+          </div>
+          <button type="submit" class="btn-primary">Save Supplier</button>
+          <button type="button" id="cancelEditBtn" class="btn-secondary" style="display:none;">Cancel</button>
+        </form>
+      </section>
+
+      <section class="card-section">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+          <h3>Active Suppliers</h3>
+          <button id="exportSuppliersBtn" class="btn-secondary">Export Suppliers CSV</button>
+        </div>
+        <div class="table-container">
+          <table class="custom-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Supplier Name</th>
+                <th>Contact Person</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="suppliersBody"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="theme.js"></script>
+  <script src="suppliers.js"></script>
+</body>
+</html>
