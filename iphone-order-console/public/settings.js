@@ -31,6 +31,8 @@ document.getElementById("save-password-btn").addEventListener("click", async () 
   if (!error) document.getElementById("new-password").value = "";
 });
 
+const isAdminHolder = { value: false };
+
 // ---- Business Profile (admin only, enforced by RLS; hidden here too for clarity) ----
 async function loadSettings() {
   const [{ data: staff }, { data: settingsRow }] = await Promise.all([
@@ -39,26 +41,34 @@ async function loadSettings() {
   ]);
 
   const isAdmin = staff?.role === "admin";
+  isAdminHolder.value = isAdmin;
   document.getElementById("save-settings-btn").disabled = !isAdmin;
   document.getElementById("store-name").disabled = !isAdmin;
+  document.getElementById("currency-symbol").disabled = !isAdmin;
   document.getElementById("low-stock-threshold").disabled = !isAdmin;
   document.getElementById("admin-only-note").hidden = isAdmin;
+  document.getElementById("suppliers-card").hidden = !isAdmin;
+  document.getElementById("add-supplier-btn").hidden = !isAdmin;
 
   if (settingsRow) {
     document.getElementById("store-name").value = settingsRow.store_name ?? "";
+    document.getElementById("currency-symbol").value = settingsRow.currency_symbol ?? "RM";
     document.getElementById("low-stock-threshold").value = settingsRow.low_stock_threshold ?? 5;
     if (settingsRow.store_name) document.getElementById("brand-name-text").textContent = settingsRow.store_name;
   }
+
+  if (isAdmin) await loadSuppliers();
 }
 
 document.getElementById("save-settings-btn").addEventListener("click", async () => {
   const msg = document.getElementById("settings-msg");
   const storeName = document.getElementById("store-name").value.trim();
+  const currency = document.getElementById("currency-symbol").value.trim() || "RM";
   const threshold = Number(document.getElementById("low-stock-threshold").value);
 
   const { error } = await supabase
     .from("app_settings")
-    .update({ store_name: storeName, low_stock_threshold: threshold })
+    .update({ store_name: storeName, currency_symbol: currency, low_stock_threshold: threshold })
     .eq("id", 1);
 
   msg.textContent = error ? "Could not save settings." : "Settings saved.";
@@ -66,6 +76,96 @@ document.getElementById("save-settings-btn").addEventListener("click", async () 
 });
 
 await loadSettings();
+
+// ---- Security ----
+document.getElementById("sign-out-others-btn").addEventListener("click", async () => {
+  const msg = document.getElementById("sign-out-others-msg");
+  const { error } = await supabase.auth.signOut({ scope: "others" });
+  msg.textContent = error ? "Could not sign out other sessions." : "Signed out of all other sessions.";
+  msg.style.color = error ? "var(--danger)" : "var(--accent)";
+});
+
+// ---- Suppliers (admin only) ----
+const esc = (str) => { const d = document.createElement("div"); d.textContent = str ?? ""; return d.innerHTML; };
+
+async function loadSuppliers() {
+  const { data, error } = await supabase.from("suppliers").select("*").order("name");
+  const tbody = document.getElementById("suppliers-tbody");
+  if (error) { tbody.innerHTML = `<tr><td colspan="5" class="muted">Could not load suppliers.</td></tr>`; return; }
+
+  tbody.innerHTML = (data ?? []).length
+    ? data.map((s) => `
+      <tr>
+        <td>${esc(s.name)}</td>
+        <td>${esc(s.contact_name ?? "")}</td>
+        <td class="muted">${esc(s.email ?? "")}</td>
+        <td>${esc(s.phone ?? "")}</td>
+        <td><button class="ghost-btn small-btn delete-supplier-btn" data-id="${s.id}" style="color: var(--danger); border-color: var(--danger);">Delete</button></td>
+      </tr>`).join("")
+    : `<tr><td colspan="5" class="muted">No suppliers yet.</td></tr>`;
+
+  tbody.querySelectorAll(".delete-supplier-btn").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      if (!confirm("Delete this supplier?")) return;
+      const { error } = await supabase.from("suppliers").delete().eq("id", btn.dataset.id);
+      if (error) { alert("Could not delete: " + error.message); return; }
+      await loadSuppliers();
+    });
+  });
+}
+
+document.getElementById("add-supplier-btn").addEventListener("click", async () => {
+  const msg = document.getElementById("supplier-msg");
+  const name = document.getElementById("new-supplier-name").value.trim();
+  if (!name) { msg.textContent = "Enter at least a supplier name."; msg.style.color = "var(--danger)"; return; }
+
+  const { error } = await supabase.from("suppliers").insert({
+    name,
+    contact_name: document.getElementById("new-supplier-contact").value.trim() || null,
+    email: document.getElementById("new-supplier-email").value.trim() || null,
+    phone: document.getElementById("new-supplier-phone").value.trim() || null,
+  });
+
+  if (error) { msg.textContent = "Could not add supplier."; msg.style.color = "var(--danger)"; return; }
+  msg.textContent = "Supplier added.";
+  msg.style.color = "var(--accent)";
+  ["new-supplier-name", "new-supplier-contact", "new-supplier-email", "new-supplier-phone"].forEach((id) => (document.getElementById(id).value = ""));
+  await loadSuppliers();
+});
+
+// ---- Data export ----
+function downloadCsv(filename, headers, rows) {
+  const csvEscape = (val) => {
+    const s = String(val ?? "");
+    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  const lines = [headers.join(","), ...rows.map((r) => r.map(csvEscape).join(","))];
+  const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+document.getElementById("export-inventory-btn").addEventListener("click", async () => {
+  const { data } = await supabase.from("inventory").select("*, suppliers(name)");
+  downloadCsv(
+    `inventory-${new Date().toISOString().slice(0, 10)}.csv`,
+    ["Model", "Storage GB", "Color", "Condition", "Quantity", "Reorder Threshold", "Unit Price", "Supplier"],
+    (data ?? []).map((i) => [i.iphone_model, i.storage_gb, i.color, i.condition, i.quantity, i.reorder_threshold, i.unit_price ?? "", i.suppliers?.name ?? ""])
+  );
+});
+
+document.getElementById("export-suppliers-btn").addEventListener("click", async () => {
+  const { data } = await supabase.from("suppliers").select("*");
+  downloadCsv(
+    `suppliers-${new Date().toISOString().slice(0, 10)}.csv`,
+    ["Name", "Contact", "Email", "Phone", "Address"],
+    (data ?? []).map((s) => [s.name, s.contact_name ?? "", s.email ?? "", s.phone ?? "", s.address ?? ""])
+  );
+});
 
 async function updateAlertsBadge() {
   const { data } = await supabase.from("inventory").select("quantity, reorder_threshold, low_stock_acknowledged");
