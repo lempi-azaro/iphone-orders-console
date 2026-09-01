@@ -126,4 +126,20 @@ export function estimatePriceAndBattery(model, storageGb, answers) {
   const price = Math.round((basePrice * depreciation * conditionMultiplier) / 10) * 10;
 
   return { estimatedPrice: price, estimatedBattery: battery, conditionScore: score, ageYears: age };
+
+// Groups models into a main iPhone series for cleaner selectors.
+// iPhone Air is grouped with the iPhone 17 generation in the UI.
+export function modelSeries(modelName) {
+  if (modelName === "iPhone Air") return "iPhone 17";
+
+  const match = modelName.match(/^iPhone (11|12|13|14|15|16|17)/);
+  return match ? `iPhone ${match[1]}` : modelName;
+}
+
+export function modelsForSeries(series) {
+  return IPHONE_MODELS.filter((model) => modelSeries(model.name) === series);
+}
+
+export const IPHONE_SERIES = [...new Set(IPHONE_MODELS.map((model) => modelSeries(model.name)))];
+  
 }
