@@ -45,9 +45,12 @@
 
         <div class="settings-card">
           <h2>Business Profile</h2>
-          <p class="muted">Sets the name shown in the sidebar across the whole app, and the default reorder point suggested when adding new inventory.</p>
+          <p class="muted">Sets the name shown in the sidebar across the whole app, the currency symbol used everywhere money is displayed, and the default reorder point suggested when adding new inventory.</p>
           <label>Business Name
             <input id="store-name" type="text" />
+          </label>
+          <label>Currency Symbol
+            <input id="currency-symbol" type="text" maxlength="4" placeholder="RM" />
           </label>
           <label>Default Reorder Point
             <input id="low-stock-threshold" type="number" min="1" />
@@ -58,6 +61,44 @@
           </div>
         </div>
         <p id="admin-only-note" class="muted small-note" hidden>Business Profile Settings Are Only Editable By Administrators.</p>
+
+        <div class="settings-card">
+          <h2>Security</h2>
+          <p class="muted">Your account's own session controls. Password reset links and session expiry are handled automatically by Supabase Auth.</p>
+          <div class="save-row">
+            <button id="sign-out-others-btn" class="ghost-btn">Sign Out Everywhere Else</button>
+            <span id="sign-out-others-msg" class="muted"></span>
+          </div>
+        </div>
+
+        <div class="settings-card" id="suppliers-card" hidden style="max-width: 100%;">
+          <h2>Suppliers</h2>
+          <p class="muted">Contacts used when sourcing inventory. Shown as an optional field when adding a new inventory item.</p>
+          <table class="users-table" id="suppliers-table">
+            <colgroup><col style="width:22%"><col style="width:22%"><col style="width:26%"><col style="width:18%"><col style="width:12%"></colgroup>
+            <thead><tr><th>Name</th><th>Contact</th><th>Email</th><th>Phone</th><th></th></tr></thead>
+            <tbody id="suppliers-tbody"><tr><td colspan="5" class="muted">Loading</td></tr></tbody>
+          </table>
+          <div class="form-grid" style="margin-top: 16px;">
+            <label>Name <input id="new-supplier-name" /></label>
+            <label>Contact Person <input id="new-supplier-contact" /></label>
+            <label>Email <input id="new-supplier-email" type="email" /></label>
+            <label>Phone <input id="new-supplier-phone" /></label>
+          </div>
+          <div class="save-row">
+            <button id="add-supplier-btn" class="primary-btn">Add Supplier</button>
+            <span id="supplier-msg" class="muted"></span>
+          </div>
+        </div>
+
+        <div class="settings-card">
+          <h2>Data Export</h2>
+          <p class="muted">Download a snapshot of your data as CSV.</p>
+          <div class="save-row">
+            <button id="export-inventory-btn" class="ghost-btn">Export Inventory (CSV)</button>
+            <button id="export-suppliers-btn" class="ghost-btn">Export Suppliers (CSV)</button>
+          </div>
+        </div>
       </div>
     </main>
   </div>
