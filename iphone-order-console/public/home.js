@@ -22,7 +22,8 @@ Chart.register(ChartDataLabels);
 
 // Greeting is set further down once we know the user's role.
 
-const money = (n) => Number(n).toLocaleString("en-MY", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+let CURRENCY = "RM";
+const money = (n) => `${CURRENCY} ${Number(n).toLocaleString("en-MY", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const titleCase = (s) => s.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 const esc = (str) => { const d = document.createElement("div"); d.textContent = str ?? ""; return d.innerHTML; };
 
@@ -49,6 +50,7 @@ async function loadDashboard() {
   suppliersCache = suppliers ?? [];
 
   if (settingsRow?.store_name) document.getElementById("brand-name-text").textContent = settingsRow.store_name;
+  if (settingsRow?.currency_symbol) CURRENCY = settingsRow.currency_symbol;
 
   const { data: myStaffRow } = await supabase.from("staff").select("role").eq("id", session.user.id).maybeSingle();
   const isAdmin = myStaffRow?.role === "admin";
@@ -153,18 +155,18 @@ function renderTrendChart(orders) {
 }
 
 function renderLowStock(inventory, isAdmin) {
-  const lowStockItems = inventory.filter((i) => i.quantity <= i.reorder_threshold);
   const listEl = document.getElementById("low-stock-list");
+  const sorted = [...inventory].sort((a, b) => a.quantity - b.quantity);
 
-  if (lowStockItems.length === 0) {
-    listEl.innerHTML = `<p class="muted" style="padding: 0 18px 14px;">Nothing Is Low On Stock Right Now.</p>`;
+  if (sorted.length === 0) {
+    listEl.innerHTML = `<p class="muted" style="padding: 0 18px 14px;">No Inventory Items Yet.</p>`;
     return;
   }
 
-  listEl.innerHTML = lowStockItems
+  listEl.innerHTML = sorted
     .map((i) => {
       const critical = i.quantity <= Math.floor(i.reorder_threshold / 2);
-      const active = isAlertActive(i);
+      const low = i.quantity <= i.reorder_threshold;
       return `
       <div class="low-stock-row">
         <span>
@@ -172,25 +174,12 @@ function renderLowStock(inventory, isAdmin) {
           ${i.suppliers?.name ? `<span class="muted">(${esc(i.suppliers.name)})</span>` : ""}
         </span>
         <span class="low-stock-actions">
-          <span class="qty-badge ${critical ? "critical" : ""}">${i.quantity} Left</span>
-          ${active
-            ? `<button class="ghost-btn small-btn ack-btn" data-id="${i.id}">Acknowledge</button>`
-            : `<span class="muted small-btn">Acknowledged</span>`}
+          <span class="qty-badge ${low ? (critical ? "critical" : "") : "qty-ok"}">${i.quantity} In Stock</span>
           <button class="ghost-btn small-btn edit-inv-btn" data-id="${i.id}" ${isAdmin ? "" : "hidden"}>Edit</button>
         </span>
       </div>`;
     })
     .join("");
-
-  listEl.querySelectorAll(".ack-btn").forEach((btn) => {
-    btn.addEventListener("click", async () => {
-      const { error } = await supabase
-        .from("inventory")
-        .update({ low_stock_acknowledged: true, low_stock_acknowledged_at: new Date().toISOString() })
-        .eq("id", btn.dataset.id);
-      if (!error) await loadDashboard();
-    });
-  });
 
   listEl.querySelectorAll(".edit-inv-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
@@ -266,7 +255,9 @@ invForm.addEventListener("submit", async (e) => {
 
   const { error } = await query;
   if (error) {
-    errorEl.textContent = "Could not save inventory item. Check the fields and try again.";
+    errorEl.textContent = error.code === "23505"
+      ? "That exact model, storage, color, and condition combination already exists. Edit the existing item instead."
+      : "Could not save inventory item. Check the fields and try again.";
     return;
   }
 
