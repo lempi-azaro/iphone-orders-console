@@ -25,7 +25,7 @@ document.getElementById("logout-btn").addEventListener("click", async () => {
 const { data: myStaffRow } = await supabase.from("staff").select("role").eq("id", session.user.id).maybeSingle();
 const isAdmin = myStaffRow?.role === "admin";
 
-const { data: brandSettings } = await supabase.from("app_settings").select("store_name").eq("id", 1).maybeSingle();
+const { data: brandSettings } = await supabase.from("app_settings").select("store_name, currency_symbol").eq("id", 1).maybeSingle();
 if (brandSettings?.store_name) document.getElementById("brand-name-text").textContent = brandSettings.store_name;
 
 // ---- State ----
@@ -41,14 +41,25 @@ const searchInput = document.getElementById("search-input");
 const statusFilter = document.getElementById("status-filter");
 const modelFilter = document.getElementById("model-filter");
 const conditionFilter = document.getElementById("condition-filter");
+const storageFilter = document.getElementById("storage-filter");
+const colorFilter = document.getElementById("color-filter");
 const unitStatusFilter = document.getElementById("unit-status-filter");
 const batteryFilter = document.getElementById("battery-filter");
+
+// Populate Color and Storage filters from every value that actually
+// appears across the iPhone lineup, deduplicated.
+const allStorages = [...new Set(IPHONE_MODELS.flatMap((m) => m.storage))].sort((a, b) => a - b);
+storageFilter.innerHTML += allStorages.map((gb) => `<option value="${gb}">${storageLabel(gb)}</option>`).join("");
+
+const allColors = [...new Set(IPHONE_MODELS.flatMap((m) => m.colors))].sort();
+colorFilter.innerHTML += allColors.map((c) => `<option value="${c}">${c}</option>`).join("");
 const pagePrevBtn = document.getElementById("page-prev");
 const pageNextBtn = document.getElementById("page-next");
 const pageIndicator = document.getElementById("page-indicator");
 const paginationSummary = document.getElementById("pagination-summary");
 
-const money = (n) => Number(n).toLocaleString("en-MY", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+let CURRENCY = brandSettings?.currency_symbol ?? "RM";
+const money = (n) => `${CURRENCY} ${Number(n).toLocaleString("en-MY", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const titleCase = (s) => s.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
 function renderStats(list) {
@@ -100,6 +111,8 @@ function getFiltered() {
   const statusQ = statusFilter.value;
   const modelQ = modelFilter.value;
   const conditionQ = conditionFilter.value;
+  const storageQ = storageFilter.value;
+  const colorQ = colorFilter.value;
   const unitStatusQ = unitStatusFilter.value;
   const batteryQ = batteryFilter.value;
 
@@ -112,6 +125,8 @@ function getFiltered() {
     const matchesStatus = !statusQ || o.status === statusQ;
     const matchesModel = !modelQ || o.iphone_model.startsWith(modelQ);
     const matchesCondition = !conditionQ || o.condition === conditionQ;
+    const matchesStorage = !storageQ || o.storage_gb === Number(storageQ);
+    const matchesColor = !colorQ || o.color === colorQ;
     const matchesUnitStatus = !unitStatusQ || o.unit_status === unitStatusQ;
     const matchesBattery =
       !batteryQ ||
@@ -119,7 +134,7 @@ function getFiltered() {
         ((batteryQ === "above90" && o.battery_health > 90) ||
           (batteryQ === "80to89" && o.battery_health >= 80 && o.battery_health <= 89) ||
           (batteryQ === "below80" && o.battery_health < 80)));
-    return matchesQ && matchesStatus && matchesModel && matchesCondition && matchesUnitStatus && matchesBattery;
+    return matchesQ && matchesStatus && matchesModel && matchesCondition && matchesStorage && matchesColor && matchesUnitStatus && matchesBattery;
   });
 
   if (sortKey) {
@@ -249,7 +264,7 @@ function render() {
 }
 
 searchInput.addEventListener("input", () => { currentPage = 1; render(); });
-[statusFilter, modelFilter, conditionFilter, unitStatusFilter, batteryFilter].forEach((el) => {
+[statusFilter, modelFilter, conditionFilter, storageFilter, colorFilter, unitStatusFilter, batteryFilter].forEach((el) => {
   el.addEventListener("change", () => { currentPage = 1; render(); });
 });
 document.getElementById("refresh-btn").addEventListener("click", loadOrders);
