@@ -1,277 +1,225 @@
-import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./config.js";
-import { IPHONE_MODELS, findModel, storageLabel } from "./iphone-data.js";
+import {
+  IPHONE_MODELS,
+  getModelSeriesList,
+  getVariantsForSeries,
+  loadSavedOrders,
+  saveOrders,
+  storageLabel
+} from './iphone-data.js';
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-  auth: { persistSession: true, autoRefreshToken: true },
-});
+document.addEventListener('DOMContentLoaded', () => {
+  let orders = loadSavedOrders();
 
-const { data: { session } } = await supabase.auth.getSession();
-if (!session) window.location.href = "index.html";
-document.getElementById("user-email").textContent = session?.user?.email ?? "";
+  const seriesFilter = document.getElementById('seriesFilter');
+  const variantFilter = document.getElementById('variantFilter');
+  const storageFilter = document.getElementById('storageFilter');
+  const colorFilter = document.getElementById('colorFilter');
+  const ordersBody = document.getElementById('ordersBody');
+  const exportBtn = document.getElementById('exportCsvBtn');
 
-supabase.auth.onAuthStateChange((event, s) => {
-  if (event === "SIGNED_OUT" || !s) window.location.href = "index.html";
-});
-document.getElementById("logout-btn").addEventListener("click", async () => {
-  await supabase.auth.signOut();
-  window.location.href = "index.html";
-});
+  const orderFormCard = document.getElementById('orderFormCard');
+  const toggleOrderFormBtn = document.getElementById('toggleOrderFormBtn');
+  const cancelOrderFormBtn = document.getElementById('cancelOrderFormBtn');
+  const orderForm = document.getElementById('orderForm');
 
-Chart.register(ChartDataLabels);
+  const formSeries = document.getElementById('formSeries');
+  const formVariant = document.getElementById('formVariant');
+  const formStorage = document.getElementById('formStorage');
+  const formColor = document.getElementById('formColor');
 
-// Greeting is set further down once we know the user's role.
+  // Populate Series Filters
+  const seriesList = getModelSeriesList();
+  seriesList.forEach(s => {
+    seriesFilter.appendChild(new Option(s, s));
+    formSeries.appendChild(new Option(s, s));
+  });
 
-let CURRENCY = "RM";
-const money = (n) => `${CURRENCY} ${Number(n).toLocaleString("en-MY", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-const titleCase = (s) => s.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-const esc = (str) => { const d = document.createElement("div"); d.textContent = str ?? ""; return d.innerHTML; };
+  // Filter Cascade Handlers
+  seriesFilter.addEventListener('change', () => {
+    populateVariants(seriesFilter.value, variantFilter, storageFilter, colorFilter);
+    renderOrders();
+  });
 
-const ACCENT = "#2f5d50";
-const PALETTE = ["#f77f00", "#2563eb", "#7c3aed", "#0d9488", "#e11d48", "#eab308"];
+  variantFilter.addEventListener('change', () => {
+    populateSpecs(variantFilter.value, storageFilter, colorFilter);
+    renderOrders();
+  });
 
-let inventoryCache = [];
-let suppliersCache = [];
+  storageFilter.addEventListener('change', renderOrders);
+  colorFilter.addEventListener('change', renderOrders);
 
-async function loadDashboard() {
-  const [{ data: orders, error: ordersErr }, { data: inventory, error: invErr }, { data: settingsRow }, { data: suppliers }] = await Promise.all([
-    supabase.from("orders").select("status, price, iphone_model, created_at"),
-    supabase.from("inventory").select("*, suppliers(name)").order("quantity", { ascending: true }),
-    supabase.from("app_settings").select("*").eq("id", 1).maybeSingle(),
-    supabase.from("suppliers").select("id, name").order("name"),
-  ]);
+  // Form Cascade Handlers
+  formSeries.addEventListener('change', () => {
+    populateVariants(formSeries.value, formVariant, formStorage, formColor);
+  });
 
-  if (ordersErr || invErr) {
-    console.error(ordersErr?.message || invErr?.message);
-    return;
+  formVariant.addEventListener('change', () => {
+    populateSpecs(formVariant.value, formStorage, formColor);
+  });
+
+  function populateVariants(seriesVal, vSelect, sSelect, cSelect) {
+    vSelect.innerHTML = '<option value="">All Variants</option>';
+    sSelect.innerHTML = '<option value="">All Storage</option>';
+    cSelect.innerHTML = '<option value="">All Colors</option>';
+
+    if (!seriesVal) {
+      vSelect.disabled = true; sSelect.disabled = true; cSelect.disabled = true;
+    } else {
+      vSelect.disabled = false;
+      const variants = getVariantsForSeries(seriesVal);
+      variants.forEach(m => vSelect.appendChild(new Option(m.name, m.name)));
+      sSelect.disabled = true; cSelect.disabled = true;
+    }
   }
 
-  inventoryCache = inventory;
-  suppliersCache = suppliers ?? [];
+  function populateSpecs(modelNameVal, sSelect, cSelect) {
+    sSelect.innerHTML = '<option value="">All Storage</option>';
+    cSelect.innerHTML = '<option value="">All Colors</option>';
 
-  if (settingsRow?.store_name) document.getElementById("brand-name-text").textContent = settingsRow.store_name;
-  if (settingsRow?.currency_symbol) CURRENCY = settingsRow.currency_symbol;
-
-  const { data: myStaffRow } = await supabase.from("staff").select("role").eq("id", session.user.id).maybeSingle();
-  const isAdmin = myStaffRow?.role === "admin";
-  document.getElementById("greeting").textContent = `Welcome Back, ${isAdmin ? "Manager" : "Staff"}`;
-  document.getElementById("add-inventory-btn").hidden = !isAdmin;
-
-  // ---- Stat cards ----
-  const total = orders.length;
-  const revenue = orders.reduce((s, o) => s + Number(o.price), 0);
-  const refunded = orders.filter((o) => o.status === "refunded").length;
-  const inventoryValue = inventory.reduce((s, i) => s + Number(i.unit_price ?? 0) * i.quantity, 0);
-
-  // Active alert = below reorder point AND not acknowledged since the last stock change.
-  const activeAlerts = inventory.filter((i) => isAlertActive(i));
-
-  document.getElementById("stat-total").textContent = total;
-  document.getElementById("stat-revenue").textContent = money(revenue);
-  document.getElementById("stat-inventory-value").textContent = money(inventoryValue);
-  document.getElementById("stat-refunded").textContent = refunded;
-  document.getElementById("stat-lowstock").textContent = activeAlerts.length;
-
-  renderStatusChart(orders);
-  renderModelChart(orders);
-  renderTrendChart(orders);
-  renderLowStock(inventory, isAdmin);
-  populateSupplierSelect(suppliersCache);
-}
-
-function isAlertActive(item) {
-  return item.quantity <= item.reorder_threshold && !item.low_stock_acknowledged;
-}
-
-function renderStatusChart(orders) {
-  const statuses = ["pending", "processing", "shipped", "delivered", "cancelled", "refunded"];
-  const counts = statuses.map((s) => orders.filter((o) => o.status === s).length);
-
-  new Chart(document.getElementById("status-chart"), {
-    type: "doughnut",
-    data: { labels: statuses.map(titleCase), datasets: [{ data: counts, backgroundColor: PALETTE, borderWidth: 0 }] },
-    options: {
-      plugins: {
-        legend: { position: "right", labels: { boxWidth: 12, font: { size: 12 } } },
-        datalabels: {
-          color: "#fff", font: { weight: "700", size: 12 },
-          formatter: (value, ctx) => {
-            if (!value) return null;
-            const total = ctx.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
-            return total ? Math.round((value / total) * 100) + "%" : null;
-          },
-        },
-      },
-    },
-  });
-}
-
-function renderModelChart(orders) {
-  const models = ["iPhone 11", "iPhone 12", "iPhone 13", "iPhone 14", "iPhone 15", "iPhone 16", "iPhone 17", "iPhone Air"];
-  const counts = models.map((m) => orders.filter((o) => o.iphone_model.startsWith(m)).length);
-
-  new Chart(document.getElementById("category-chart"), {
-    type: "bar",
-    data: { labels: models, datasets: [{ data: counts, backgroundColor: ACCENT, borderRadius: 6, maxBarThickness: 60 }] },
-    options: {
-      plugins: {
-        legend: { display: false },
-        datalabels: { anchor: "end", align: "top", color: ACCENT, font: { weight: "700", size: 12 }, formatter: (v) => (v > 0 ? v : null) },
-      },
-      scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
-      layout: { padding: { top: 18 } },
-    },
-  });
-}
-
-function renderTrendChart(orders) {
-  const weeks = [];
-  const now = new Date();
-  for (let i = 7; i >= 0; i--) {
-    const start = new Date(now);
-    start.setDate(now.getDate() - i * 7 - now.getDay());
-    start.setHours(0, 0, 0, 0);
-    const end = new Date(start);
-    end.setDate(start.getDate() + 7);
-    weeks.push({ start, end, label: `${start.getMonth() + 1}/${start.getDate()}` });
+    if (!modelNameVal) {
+      sSelect.disabled = true; cSelect.disabled = true;
+    } else {
+      sSelect.disabled = false; cSelect.disabled = false;
+      const modelObj = IPHONE_MODELS.find(m => m.name === modelNameVal);
+      if (modelObj) {
+        modelObj.storage.forEach(s => sSelect.appendChild(new Option(storageLabel(s), s)));
+        modelObj.colors.forEach(c => cSelect.appendChild(new Option(c, c)));
+      }
+    }
   }
 
-  const counts = weeks.map((w) => orders.filter((o) => {
-    const d = new Date(o.created_at);
-    return d >= w.start && d < w.end;
-  }).length);
-
-  new Chart(document.getElementById("trend-chart"), {
-    type: "line",
-    data: {
-      labels: weeks.map((w) => w.label),
-      datasets: [{ data: counts, borderColor: ACCENT, backgroundColor: "rgba(47,93,80,0.12)", fill: true, tension: 0.3, pointRadius: 3 }],
-    },
-    options: {
-      plugins: { legend: { display: false }, datalabels: { display: false } },
-      scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
-    },
-  });
-}
-
-function renderLowStock(inventory, isAdmin) {
-  const listEl = document.getElementById("low-stock-list");
-  const sorted = [...inventory].sort((a, b) => a.quantity - b.quantity);
-
-  if (sorted.length === 0) {
-    listEl.innerHTML = `<p class="muted" style="padding: 0 18px 14px;">No Inventory Items Yet.</p>`;
-    return;
-  }
-
-  listEl.innerHTML = sorted
-    .map((i) => {
-      const critical = i.quantity <= Math.floor(i.reorder_threshold / 2);
-      const low = i.quantity <= i.reorder_threshold;
-      return `
-      <div class="low-stock-row">
-        <span>
-          ${esc(i.iphone_model)}, ${i.storage_gb >= 1024 ? "1TB" : i.storage_gb + "GB"}, ${esc(i.color)}, ${esc(titleCase(i.condition))}
-          ${i.suppliers?.name ? `<span class="muted">(${esc(i.suppliers.name)})</span>` : ""}
-        </span>
-        <span class="low-stock-actions">
-          <span class="qty-badge ${low ? (critical ? "critical" : "") : "qty-ok"}">${i.quantity} In Stock</span>
-          <button class="ghost-btn small-btn edit-inv-btn" data-id="${i.id}" ${isAdmin ? "" : "hidden"}>Edit</button>
-        </span>
-      </div>`;
-    })
-    .join("");
-
-  listEl.querySelectorAll(".edit-inv-btn").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const item = inventoryCache.find((i) => i.id === btn.dataset.id);
-      openInventoryDialog(item);
+  function renderOrders() {
+    ordersBody.innerHTML = '';
+    const filtered = orders.filter(o => {
+      if (seriesFilter.value && !o.modelName.startsWith(seriesFilter.value) && !(seriesFilter.value === "iPhone 17" && o.modelName === "iPhone Air")) return false;
+      if (variantFilter.value && o.modelName !== variantFilter.value) return false;
+      if (storageFilter.value && String(o.storage) !== String(storageFilter.value)) return false;
+      if (colorFilter.value && o.color !== colorFilter.value) return false;
+      return true;
     });
-  });
-}
 
-function populateSupplierSelect(suppliers) {
-  const sel = document.getElementById("inv-supplier");
-  sel.innerHTML = `<option value="">None</option>` + suppliers.map((s) => `<option value="${s.id}">${esc(s.name)}</option>`).join("");
-}
+    filtered.forEach(o => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td data-label="Order ID"><strong>${o.id}</strong></td>
+        <td data-label="Year">${o.year}</td>
+        <td data-label="Model / Specs">${o.modelName}<br><small>${storageLabel(o.storage)} • ${o.color}</small></td>
+        <td data-label="Condition">${o.condition}</td>
+        <td data-label="Battery">${o.batteryHealth}</td>
+        <td data-label="Price">RM ${o.price}</td>
+        <td data-label="Address"><small>${o.address}</small></td>
+        <td data-label="Status">
+          <select onchange="window.updateStatus('${o.id}', this.value)" style="padding:0.3rem;">
+            ${['Pending','Processing','Shipped','Delivered','Cancelled'].map(s => 
+              `<option value="${s}" ${o.status === s ? 'selected' : ''}>${s}</option>`
+            ).join('')}
+          </select>
+        </td>
+        <td data-label="Actions">
+          <button onclick="window.editOrder('${o.id}')" class="btn-secondary" style="padding:0.3rem 0.6rem;">Edit</button>
+          <button onclick="window.deleteOrder('${o.id}')" class="btn-danger">Delete</button>
+        </td>
+      `;
+      ordersBody.appendChild(tr);
+    });
+  }
 
-// ---- Add / Edit inventory dialog ----
-const invDialog = document.getElementById("inventory-dialog");
-const invForm = document.getElementById("inventory-form");
-const invModelSelect = document.getElementById("inv-model");
-const invStorageSelect = document.getElementById("inv-storage");
-const invColorSelect = document.getElementById("inv-color");
-
-invModelSelect.innerHTML = [...IPHONE_MODELS].reverse().map((m) => `<option value="${m.name}">${m.name} (${m.year})</option>`).join("");
-
-function refreshInvStorageAndColor(preserve = {}) {
-  const model = findModel(invModelSelect.value) ?? IPHONE_MODELS[0];
-  invStorageSelect.innerHTML = model.storage.map((gb) => `<option value="${gb}">${storageLabel(gb)}</option>`).join("");
-  if (preserve.storage_gb && model.storage.includes(Number(preserve.storage_gb))) invStorageSelect.value = preserve.storage_gb;
-  invColorSelect.innerHTML = model.colors.map((c) => `<option value="${c}">${c}</option>`).join("");
-  if (preserve.color && model.colors.includes(preserve.color)) invColorSelect.value = preserve.color;
-}
-
-invModelSelect.addEventListener("change", () => refreshInvStorageAndColor());
-
-function openInventoryDialog(item = null) {
-  document.getElementById("inventory-form-error").textContent = "";
-  document.getElementById("inventory-dialog-title").textContent = item ? "Edit Inventory Item" : "Add Inventory Item";
-  document.getElementById("inv-id").value = item?.id ?? "";
-  document.getElementById("inv-condition").value = item?.condition ?? "new";
-  document.getElementById("inv-quantity").value = item?.quantity ?? 0;
-  document.getElementById("inv-reorder").value = item?.reorder_threshold ?? 5;
-  document.getElementById("inv-price").value = item?.unit_price ?? "";
-  document.getElementById("inv-supplier").value = item?.supplier_id ?? "";
-
-  invModelSelect.value = item?.iphone_model ?? IPHONE_MODELS[IPHONE_MODELS.length - 1].name;
-  refreshInvStorageAndColor({ storage_gb: item?.storage_gb, color: item?.color });
-
-  invDialog.showModal();
-}
-
-document.getElementById("add-inventory-btn").addEventListener("click", () => openInventoryDialog());
-document.getElementById("inventory-cancel-btn").addEventListener("click", () => invDialog.close());
-
-invForm.addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const errorEl = document.getElementById("inventory-form-error");
-  errorEl.textContent = "";
-
-  const id = document.getElementById("inv-id").value;
-  const payload = {
-    iphone_model: invModelSelect.value,
-    storage_gb: Number(invStorageSelect.value),
-    color: invColorSelect.value,
-    condition: document.getElementById("inv-condition").value,
-    quantity: Number(document.getElementById("inv-quantity").value),
-    reorder_threshold: Number(document.getElementById("inv-reorder").value),
-    unit_price: document.getElementById("inv-price").value === "" ? null : Number(document.getElementById("inv-price").value),
-    supplier_id: document.getElementById("inv-supplier").value || null,
+  window.updateStatus = function(id, newStatus) {
+    const item = orders.find(o => o.id === id);
+    if (item) {
+      item.status = newStatus;
+      saveOrders(orders);
+    }
   };
 
-  const query = id
-    ? supabase.from("inventory").update(payload).eq("id", id)
-    : supabase.from("inventory").insert(payload);
+  window.deleteOrder = function(id) {
+    if (confirm(`Remove order ${id}?`)) {
+      orders = orders.filter(o => o.id !== id);
+      saveOrders(orders);
+      renderOrders();
+    }
+  };
 
-  const { error } = await query;
-  if (error) {
-    errorEl.textContent = error.code === "23505"
-      ? "That exact model, storage, color, and condition combination already exists. Edit the existing item instead."
-      : "Could not save inventory item. Check the fields and try again.";
-    return;
-  }
+  window.editOrder = function(id) {
+    const o = orders.find(item => item.id === id);
+    if (!o) return;
 
-  invDialog.close();
-  await loadDashboard();
+    document.getElementById('orderId').value = o.id;
+    document.getElementById('orderFormTitle').textContent = `Edit Order ${o.id}`;
+
+    const series = seriesList.find(s => o.modelName.startsWith(s) || (s === "iPhone 17" && o.modelName === "iPhone Air"));
+    if (series) {
+      formSeries.value = series;
+      populateVariants(series, formVariant, formStorage, formColor);
+      formVariant.value = o.modelName;
+      populateSpecs(o.modelName, formStorage, formColor);
+      formStorage.value = o.storage;
+      formColor.value = o.color;
+    }
+
+    document.getElementById('formCondition').value = o.condition;
+    document.getElementById('formBattery').value = o.batteryHealth;
+    document.getElementById('formPrice').value = o.price;
+    document.getElementById('formStatus').value = o.status;
+    document.getElementById('formAddress').value = o.address;
+
+    orderFormCard.style.display = 'block';
+  };
+
+  toggleOrderFormBtn.addEventListener('click', () => {
+    orderForm.reset();
+    document.getElementById('orderId').value = '';
+    document.getElementById('orderFormTitle').textContent = 'Create New Order';
+    orderFormCard.style.display = 'block';
+  });
+
+  cancelOrderFormBtn.addEventListener('click', () => { orderFormCard.style.display = 'none'; });
+
+  orderForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const id = document.getElementById('orderId').value;
+    const modelName = formVariant.value;
+    const modelObj = IPHONE_MODELS.find(m => m.name === modelName);
+
+    const orderPayload = {
+      id: id || `ORD-${Date.now().toString().slice(-4)}`,
+      year: modelObj ? modelObj.year : 2024,
+      modelName,
+      storage: parseInt(formStorage.value),
+      color: formColor.value,
+      condition: document.getElementById('formCondition').value,
+      batteryHealth: document.getElementById('formBattery').value,
+      price: parseFloat(document.getElementById('formPrice').value),
+      status: document.getElementById('formStatus').value,
+      address: document.getElementById('formAddress').value
+    };
+
+    if (id) {
+      const idx = orders.findIndex(o => o.id === id);
+      if (idx !== -1) orders[idx] = orderPayload;
+    } else {
+      orders.unshift(orderPayload);
+    }
+
+    saveOrders(orders);
+    orderFormCard.style.display = 'none';
+    renderOrders();
+  });
+
+  // Download CSV export trigger fix
+  exportBtn.addEventListener('click', () => {
+    const headers = ['Order ID', 'Year', 'Model', 'Storage', 'Color', 'Condition', 'Battery', 'Price (RM)', 'Status', 'Address'];
+    const rows = orders.map(o => [o.id, o.year, o.modelName, storageLabel(o.storage), o.color, o.condition, o.batteryHealth, o.price, o.status, `"${o.address}"`]);
+    
+    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', 'iphone_orders.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  });
+
+  renderOrders();
 });
-
-await loadDashboard();
-
-async function updateAlertsBadge() {
-  const { data } = await supabase.from("inventory").select("quantity, reorder_threshold, low_stock_acknowledged");
-  const count = (data ?? []).filter((i) => i.quantity <= i.reorder_threshold && !i.low_stock_acknowledged).length;
-  const badge = document.getElementById("alerts-badge");
-  if (!badge) return;
-  if (count > 0) { badge.textContent = count; badge.hidden = false; } else { badge.hidden = true; }
-}
-updateAlertsBadge();
