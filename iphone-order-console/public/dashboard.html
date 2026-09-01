@@ -31,7 +31,7 @@
       <div class="dashboard">
         <div class="stats-row" id="stats-row">
           <div class="stat-card"><span class="stat-num" id="stat-total">0</span><span class="stat-label">Total Orders</span></div>
-          <div class="stat-card"><span class="stat-num" id="stat-revenue">0</span><span class="stat-label">Total Value (RM)</span></div>
+          <div class="stat-card"><span class="stat-num" id="stat-revenue">0</span><span class="stat-label">Total Value</span></div>
           <div class="stat-card stat-pending"><span class="stat-num" id="stat-pending">0</span><span class="stat-label">Pending</span></div>
           <div class="stat-card stat-transit"><span class="stat-num" id="stat-transit">0</span><span class="stat-label">Processing + Shipped</span></div>
           <div class="stat-card stat-done"><span class="stat-num" id="stat-delivered">0</span><span class="stat-label">Delivered</span></div>
@@ -60,6 +60,12 @@
               <option value="new">New</option>
               <option value="like_new">Like New</option>
               <option value="used">Used</option>
+            </select>
+            <select id="storage-filter">
+              <option value="">All Storage</option>
+            </select>
+            <select id="color-filter">
+              <option value="">All Colors</option>
             </select>
             <select id="unit-status-filter">
               <option value="">All Unit Status</option>
@@ -95,7 +101,7 @@
           <table id="orders-table">
             <colgroup>
               <col style="width:85px">
-              <col style="width:150px">
+              <col style="width:170px">
               <col style="width:200px">
               <col style="width:130px">
               <col style="width:50px">
@@ -119,7 +125,7 @@
                 <th>Color</th>
                 <th>Condition</th>
                 <th class="sortable" data-sort="battery_health">Battery <span class="sort-arrow"></span></th>
-                <th class="sortable" data-sort="price">Price (RM) <span class="sort-arrow"></span></th>
+                <th class="sortable" data-sort="price">Price <span class="sort-arrow"></span></th>
                 <th>Order Status</th>
                 <th>Unit Status</th>
                 <th>Actions</th>
